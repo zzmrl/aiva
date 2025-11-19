@@ -1,21 +1,28 @@
-# Virtual Assistant
+# Automate.It Virtual Assistant (AIVA)
 
-A virtual assistant application.
+A virtual assistant application for the automate.it platform.
 
-For now, it records transcribed phone calls and text messages to a database. We plan to expand this with tool calls and other useful features as we build.
+For now, it records transcribed phone calls and text messages to a database.
+We plan to expand this with tool calls and other useful features as we build.
+
+## Requirements
+
+Ensure you have all necessary secret files:
+
+* `./secrets/postgres_password`
+* `./secrets/postgres_user`
+
+They can contain any values but they should be kept static once initialized.
 
 ## Components
-
-* Call/text management
-    * Twilio
-        * Server-side software to handle both call/text
-        * Has node and python libraries
-        * Use webhooks route requests to our backend
-        * Mature solution with many potentially useful features
 * Processing Backend and API
     * Node/express API to handle webhook responses
     * typescript
-    * twilio libraries for handling call/text and transcription
+    * Twilio
+        * handles text/call (including transcription)
+        * Has node and python libraries
+        * Webhooks route requests to our backend
+        * Mature solution with many potentially useful features
 * Persistence
     * postgres SQL
     * Supabase

@@ -4,7 +4,7 @@
 2. Setup project directory and compose.yaml
    * [ ] services
         * [ ] backend - node.js, express
-        * [ ] db - postgres
+        * [x] db - postgres
         * [ ] webapp - html/svelte
         * [ ] nginx
     * [ ] secrets
@@ -12,6 +12,7 @@
     * [ ] revisit after setting up everything else
     * [ ] healthchecks if time
 3. Setup database
+    * [ ] initialization
     * [ ] messages table
 4. Build node/express/typescript backend
     * [ ] /call endpoint
