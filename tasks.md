@@ -3,7 +3,7 @@
     * [ ] Save API key
 2. Setup project directory and compose.yaml
    * [ ] services
-        * [ ] backend - node.js, express
+        * [x] backend - node.js, express
         * [x] db - postgres
         * [ ] webapp - html/svelte
         * [ ] nginx
@@ -20,7 +20,7 @@
     * [ ] /messages endpoint for returning saved messages
     * [ ] database connection
 5. Setup simple webapp
-    * [ ] create sveltekit static app
+    * [x] create sveltekit static app
     * [ ] call api and render list to the page
     * [ ] stylize
 6. Setup NGINX
