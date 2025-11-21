@@ -50,5 +50,4 @@ docker compose up api
 
 - `PORT` - Server port (default: 3000)
 - `NODE_ENV` - Environment (development/production)
-- `POSTGRES_PASSWORD_FILE` - Path to file containing PostgreSQL password 
-- `POSTGRES_USER_FILE` - Path to file containing PostgreSQL user
+- `DATABASE_URL` - PostgreSQL connection string
