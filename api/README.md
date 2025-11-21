@@ -11,12 +11,12 @@ pnpm install
 
 ### Run in development mode
 ```bash
-pnpm run dev
+pnpm dev
 ```
 
 ### Build
 ```bash
-pnpm run build
+pnpm build
 ```
 
 ### Run production build
@@ -26,12 +26,12 @@ pnpm start
 
 ### Type checking
 ```bash
-pnpm run type-check
+pnpm type-check
 ```
 
 ### Linting
 ```bash
-pnpm run lint
+pnpm lint
 ```
 
 ## Docker
@@ -50,4 +50,5 @@ docker compose up api
 
 - `PORT` - Server port (default: 3000)
 - `NODE_ENV` - Environment (development/production)
-- `DATABASE_URL` - PostgreSQL connection string
+- `POSTGRES_PASSWORD_FILE` - Path to file containing PostgreSQL password 
+- `POSTGRES_USER_FILE` - Path to file containing PostgreSQL user
