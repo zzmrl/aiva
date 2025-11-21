@@ -1,11 +1,9 @@
-import express, { type Express, type Request, type Response } from "express";
+import express, { type Request, type Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import dotenv from "dotenv";
+import debug from "debug";
 
-dotenv.config();
-
-const app: Express = express();
+const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -37,6 +35,16 @@ app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+});
+
+/**
+ * Gracefully shutdown the server
+ */
+process.on("SIGTERM", () => {
+  debug("SIGTERM signal received: closing HTTP server");
+  server.close(() => {
+    debug("Server closed");
+  });
 });
