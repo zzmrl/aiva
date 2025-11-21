@@ -8,8 +8,7 @@ services:
     environment:
       PORT: 3000
       NODE_ENV: production
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      DATABASE_URL: postgresql://$$(cat /run/secrets/postgres_user):$$(cat /run/secrets/postgres_password)@database:5432/$$(cat /run/secrets/postgres_user)
     depends_on:
       database:
         condition: service_healthy
@@ -36,6 +35,20 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+
+  web:
+    build: ./webui
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      database:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+      webui:
+        condition: service_healthy
 
 secrets:
   postgres_password:
