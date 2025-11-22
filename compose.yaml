@@ -27,6 +27,7 @@ services:
       - postgres_user
     volumes:
       - postgres_data:/var/lib/postgresql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: >
         pg_isready
@@ -42,12 +43,12 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      - nginx_logs:/var/log/nginx
     depends_on:
       database:
         condition: service_healthy
       api:
-        condition: service_healthy
-      webui:
         condition: service_healthy
 
 secrets:
@@ -58,3 +59,4 @@ secrets:
 
 volumes:
   postgres_data:
+  nginx_logs:

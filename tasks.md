@@ -2,18 +2,18 @@
     * [x] Setup Account
     * [ ] Save API key
 2. Setup project directory and compose.yaml
-   * [ ] services
+   * [x] services
         * [x] backend - node.js, express
         * [x] db - postgres
-        * [ ] webapp - html/svelte
-        * [ ] nginx
-    * [ ] secrets
-    * [ ] volumes
+        * [x] webapp - html/svelte
+        * [x] nginx
+    * [x] secrets
+    * [x] volumes
     * [ ] revisit after setting up everything else
     * [ ] healthchecks if time
 3. Setup database
-    * [ ] initialization
-    * [ ] messages table
+    * [x] initialization
+    * [x] messages table
 4. Build node/express/typescript backend
     * [ ] /call endpoint
     * [ ] /sms endpoint
