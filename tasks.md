@@ -15,10 +15,10 @@
     * [x] initialization
     * [x] messages table
 4. Build node/express/typescript backend
-    * [ ] /call endpoint
-    * [ ] /sms endpoint
-    * [ ] /messages endpoint for returning saved messages
     * [ ] database connection
+    * [ ] /call endpoint
+    * [x] /sms endpoint
+    * [ ] /messages endpoint for returning saved messages
 5. Setup simple webapp
     * [x] create sveltekit static app
     * [ ] call api and render list to the page
