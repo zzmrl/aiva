@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "moduleDetection": "force",
-    "module": "Preserve",
+    "module": "preserve",
+    "target": "ESNext",
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "isolatedModules": true,

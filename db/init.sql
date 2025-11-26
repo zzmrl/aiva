@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS messages (
     id SERIAL PRIMARY KEY,
     phone_number VARCHAR(20) NOT NULL,
-    message TEXT NOT NULL,
+    body TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

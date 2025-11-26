@@ -8,26 +8,31 @@ import helmet from "helmet";
 import createDebug from "debug";
 import twilio from "twilio";
 import pino from "pino-http";
-
-const app = express();
-const PORT = process.env.PORT || 3000;
+import { insertMessage, getAllMessages } from "./messages";
 
 const debug = createDebug("api");
 
+const app = express();
+const PORT = process.env.PORT || 3000;
+// const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
+
 app.use(helmet());
 app.use(cors());
-// The following configuration ensures that pino-pretty is activated only in development mode.
-const pinoOptions = process.stdout.isTTY
-  ? {
-      transport: {
-        target: "pino-pretty",
-        options: {
-          colorize: true,
-        },
-      },
-    }
-  : {};
-app.use(pino({ ...pinoOptions }));
+app.use(
+  pino({
+    // ensure that pino-pretty is activated only in development
+    ...(process.stdout.isTTY
+      ? {
+          transport: {
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+            },
+          },
+        }
+      : {}),
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -39,25 +44,32 @@ app.get("/health", (_req: Request, res: Response) => {
 });
 
 app.post("/voice", (_req: Request, res: Response) => {
-  const twiml = new twilio.twiml.MessagingResponse();
+  debug("Voice received");
 
+  const twiml = new twilio.twiml.VoiceResponse();
   twiml.say("Message received by Automate It.");
 
-  res.type("text/xml");
-  res.send(twiml.toString());
+  res.type("text/xml").send(twiml.toString());
 });
 
-app.post("/sms", (_req: Request, res: Response) => {
-  const twiml = new twilio.twiml.MessagingResponse();
+app.post("/sms", async (req, res) => {
+  debug("SMS received");
 
+  await insertMessage({
+    body: req.body.Body,
+    phoneNumber: req.body.From,
+  });
+
+  const twiml = new twilio.twiml.MessagingResponse();
   twiml.message("Message received by Automate It.");
 
-  res.type("text/xml");
-  res.send(twiml.toString());
+  res.status(201).type("text/xml").send(twiml.toString());
 });
 
-app.get("/messages", (_req: Request, res: Response) => {
-  res.json({ message: "AIVA API is running" });
+app.get("/messages", async (_req: Request, res: Response) => {
+  const messages = await getAllMessages();
+
+  res.json({ messages });
 });
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
@@ -72,7 +84,7 @@ app.use((_req: Request, res: Response) => {
 });
 
 const server = app.listen(PORT, () => {
-  console.info(`Server is running on port ${PORT}`);
+  console.info(`Server is listening on port ${PORT}`);
 });
 
 /**

@@ -8,13 +8,18 @@ services:
     environment:
       PORT: 3000
       NODE_ENV: production
-      DATABASE_URL: postgresql://$$(cat /run/secrets/postgres_user):$$(cat /run/secrets/postgres_password)@database:5432/$$(cat /run/secrets/postgres_user)
+      DATABASE_PASSWORD_FILE: /run/secrets/postgres_password
+      DATABASE_USER_FILE: /run/secrets/postgres_user
+      DATABASE_NAME_FILE: /run/secrets/postgres_db
+      DATABASE_HOST: database
+      DATABASE_PORT: 5432
     depends_on:
       database:
         condition: service_healthy
     secrets:
       - postgres_password
       - postgres_user
+      - postgres_db
 
   database:
     image: postgres:18-alpine
@@ -25,6 +30,7 @@ services:
     secrets:
       - postgres_password
       - postgres_user
+      - postgres_db
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -32,7 +38,7 @@ services:
       test: >
         pg_isready
         -U $$(cat /run/secrets/postgres_user)
-        -d $$(cat /run/secrets/postgres_user)
+        -d $$(cat /run/secrets/postgres_db)
       interval: 30s
       timeout: 10s
       retries: 5
@@ -48,13 +54,15 @@ services:
     depends_on:
       database:
         condition: service_healthy
-      api:
-        condition: service_healthy
+      # api:
+      #   condition: service_healthy
 
 secrets:
   postgres_password:
     file: ./secrets/postgres_password
   postgres_user:
+    file: ./secrets/postgres_user
+  postgres_db:
     file: ./secrets/postgres_user
 
 volumes:
