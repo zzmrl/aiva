@@ -54,3 +54,6 @@ They can contain any values but they should be kept static once initialized.
 
 * We'll need to consider legal compliance for anything regarding recording
 voice over the phone, which varies from state to state.
+
+* Call transcriptions cost per call. Its fairly inexpensive, but we'll need 
+to limit this per user or offset the cost with other income sources.

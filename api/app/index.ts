@@ -43,17 +43,43 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
-app.post("/voice", (_req: Request, res: Response) => {
+app.post("/voice", (_req, res) => {
   debug("Voice received");
-
   const twiml = new twilio.twiml.VoiceResponse();
-  twiml.say("Message received by Automate It.");
+
+  twiml.say("Hello. Please leave a message for Automate It.");
+  twiml.record({
+    transcribe: true,
+    transcribeCallback: "/voiceTranscribe",
+    maxLength: 30,
+  });
+
+  twiml.hangup();
 
   res.type("text/xml").send(twiml.toString());
 });
 
+app.post("/voiceTranscribe", async (req, res) => {
+  debug("Voice Transcription received");
+
+  if (!req.body.TranscriptionText || !req.body.From) {
+    res.status(400).send("Missing required fields");
+  }
+
+  await insertMessage({
+    body: req.body.TranscriptionText,
+    phoneNumber: req.body.From,
+  });
+
+  res.status(201).send();
+});
+
 app.post("/sms", async (req, res) => {
   debug("SMS received");
+
+  if (!req.body.Body || !req.body.From) {
+    res.status(400).send("Missing required fields");
+  }
 
   await insertMessage({
     body: req.body.Body,

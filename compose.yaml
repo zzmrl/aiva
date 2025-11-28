@@ -7,7 +7,7 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-development}
       DATABASE_PASSWORD_FILE: /run/secrets/postgres_password
       DATABASE_USER_FILE: /run/secrets/postgres_user
       DATABASE_NAME_FILE: /run/secrets/postgres_db

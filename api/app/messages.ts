@@ -1,7 +1,7 @@
 import db from "./db";
 
 export type Message = {
-  id: string;
+  id: number;
   phoneNumber: string;
   body: string;
   createdAt: Date;
@@ -43,7 +43,7 @@ export function getAllMessages(): Promise<Message[]> {
  * @param id - The message ID
  * @returns The message if found, null otherwise
  */
-export async function getMessageById(id: string): Promise<Message | null> {
+export async function getMessageById(id: number): Promise<Message | null> {
   const query = `
     SELECT id, phone_number, body
     FROM messages
@@ -57,7 +57,7 @@ export async function getMessageById(id: string): Promise<Message | null> {
  * @param id - The message ID
  * @returns The message if found, null otherwise
  */
-export async function getMessageByPhone(id: string): Promise<Message | null> {
+export async function getMessageByPhone(id: number): Promise<Message | null> {
   const query = `
     SELECT id, phone_number, body
     FROM messages
