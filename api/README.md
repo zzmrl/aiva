@@ -2,36 +2,38 @@
 
 Express TypeScript API for the Automate.It Virtual Assistant.
 
+Used bun for development but will likely work with other runtimes and package managers
+
 ## Development
 
 ### Install dependencies
 ```bash
-pnpm install
+bun install
 ```
 
 ### Run in development mode
 ```bash
-pnpm dev
+bun dev
 ```
 
 ### Build
 ```bash
-pnpm build
+bun build
 ```
 
 ### Run production build
 ```bash
-pnpm start
+bun start
 ```
 
 ### Type checking
 ```bash
-pnpm type-check
+bun type-check
 ```
 
 ### Linting
 ```bash
-pnpm lint
+bun lint
 ```
 
 ## Docker
@@ -50,4 +52,8 @@ docker compose up api
 
 - `PORT` - Server port (default: 3000)
 - `NODE_ENV` - Environment (development/production)
-- `DATABASE_URL` - PostgreSQL connection string
+- `DATABASE_PASSWORD_FILE` - Path to secret file containing database password
+- `DATABASE_USER_FILE` - Path to secret file containing database user
+- `DATABASE_NAME_FILE` - Path to secret file containing database name
+- `DATABASE_HOST` - Database host (default: localhost)
+- `DATABASE_PORT` - Database port (default: 5432)
