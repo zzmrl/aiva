@@ -1,6 +1,8 @@
 <script lang="ts">
   import { getMessages, type Message } from '$lib/api';
   import { onMount } from 'svelte';
+  import MessageCard from '$lib/MessageCard.svelte';
+  import ErrorIcon from '$lib/icons/ErrorIcon.svelte';
 
   let messages: Message[];
   let loading = true;
@@ -17,36 +19,34 @@
   });
 </script>
 
-<h1 class="text-2xl font-bold text-center mb-4">Automate.It Virtual Assistant</h1>
-<div>
-  <table class="table table-zebra">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Phone Number</th>
-        <th>Message</th>
-        <th>Created At</th>
-      </tr>
-    </thead>
-    <tbody>
-      {#if loading && !messages}
-        <tr>
-          <td colspan="4">Loading...</td>
-        </tr>
-      {:else if error}
-        <tr>
-          <td colspan="4">Something went wrong...</td>
-        </tr>
-      {:else}
-        {#each messages as message (message.id)}
-          <tr>
-            <td>{message.id}</td>
-            <td>{message.phoneNumber}</td>
-            <td>{message.body}</td>
-            <td>{message.createdAt}</td>
-          </tr>
-        {/each}
-      {/if}
-    </tbody>
-  </table>
+<div class="container mx-auto max-w-6xl">
+  <div class="inline-flex justify-between w-full">
+    <h1 class="text-2xl font-bold text-center mb-6">
+      <span class="text-primary">Automate.It Virtual Assistant</span> Message Archive
+    </h1>
+    <input type="text" placeholder="Search" class="input w-24 md:w-auto" />
+  </div>
+</div>
+
+<div class="container mx-auto max-w-6xl">
+  {#if loading && !messages}
+    <div class="flex justify-center items-center py-12">
+      <span class="loading loading-spinner loading-lg"></span>
+    </div>
+  {:else if error}
+    <div class="alert alert-error">
+      <ErrorIcon />
+      <span>Something went wrong loading messages. Please try again later.</span>
+    </div>
+  {:else if messages && messages.length === 0}
+    <div class="text-center py-12">
+      <p class="text-base-content/60">No messages yet.</p>
+    </div>
+  {:else}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {#each messages as message (message.id)}
+        <MessageCard {message} />
+      {/each}
+    </div>
+  {/if}
 </div>

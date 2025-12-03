@@ -1,8 +1,12 @@
+<script lang="ts">
+  export let size = 6;
+</script>
+
 <label class="swap swap-rotate">
   <input type="checkbox" class="theme-controller" value="dark" />
   <!-- sun icon -->
   <svg
-    class="swap-off h-10 w-10 fill-current"
+    class="swap-off h-{size} w-{size} fill-current"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
   >
@@ -12,7 +16,7 @@
   </svg>
   <!-- moon icon -->
   <svg
-    class="swap-on h-10 w-10 fill-current"
+    class="swap-on h-{size} w-{size} fill-current"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
   >
