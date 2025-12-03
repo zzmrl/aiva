@@ -1,11 +1,9 @@
-import pgPromise from "pg-promise";
-import fs from "fs/promises";
-
-export const pgp = pgPromise();
+import { SQL } from "bun";
 
 async function readSecret(filePath: string): Promise<string> {
+  const file = Bun.file(filePath);
   try {
-    const text = await fs.readFile(filePath, "utf8");
+    const text = await file.text();
     return text.trim();
   } catch (_error) {
     throw new Error(`Failed to read secret file: ${filePath}`);
@@ -30,12 +28,10 @@ const dbPassword = await readSecret(dbPasswordFile);
 const dbUser = await readSecret(dbUserFile);
 const dbName = await readSecret(dbNameFile);
 
-const db = pgp({
+export const pg = new SQL({
   host: dbHost,
-  port: parseInt(dbPort),
+  port: dbPort,
   database: dbName,
   user: dbUser,
   password: dbPassword,
 });
-
-export default db;

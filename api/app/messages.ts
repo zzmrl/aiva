@@ -1,4 +1,4 @@
-import db from "./db";
+import { pg } from "./db";
 
 export type Message = {
   id: number;
@@ -17,25 +17,26 @@ export type CreateMessageInput = Pick<Message, "phoneNumber" | "body">;
 export async function insertMessage(
   input: CreateMessageInput,
 ): Promise<Message> {
-  const query = `
+  return pg<Message>`
     INSERT INTO messages (phone_number, body)
-    VALUES ($1, $2)
-    RETURNING id, phone_number, body
+    VALUES (${input.phoneNumber}, ${input.body})
+    RETURNING id, phone_number AS phoneNumber,
+      body, created_at AS createdAt
   `;
-  return db.one<Message>(query, [input.phoneNumber, input.body]);
 }
 
 /**
  * Get all messages from the database
  * @returns Array of all messages
  */
-export function getAllMessages(): Promise<Message[]> {
-  const query = `
-    SELECT id, phone_number, body
+export async function getAllMessages(): Promise<Message[]> {
+  return pg`
+    SELECT
+      id, phone_number AS phoneNumber,
+      body, created_at AS createdAt
     FROM messages
     ORDER BY created_at DESC
   `;
-  return db.manyOrNone<Message>(query);
 }
 
 /**
@@ -44,24 +45,27 @@ export function getAllMessages(): Promise<Message[]> {
  * @returns The message if found, null otherwise
  */
 export async function getMessageById(id: number): Promise<Message | null> {
-  const query = `
-    SELECT id, phone_number, body
+  const [message] = await pg<Message[]>`
+    SELECT
+      id, phone_number AS phoneNumber,
+      body, created_at AS createdAt
     FROM messages
-    WHERE id = $1
+    WHERE id = ${id}
   `;
-  return db.oneOrNone<Message>(query, [id]);
+  return message ?? null;
 }
 
 /**
- * Get a single message by ID
- * @param id - The message ID
- * @returns The message if found, null otherwise
+ * Get messages by phone number
+ * @param phone - The phone number
+ * @returns List of messages if found, empty array otherwise
  */
-export async function getMessageByPhone(id: number): Promise<Message | null> {
-  const query = `
-    SELECT id, phone_number, body
+export async function getMessagesByPhone(phone: string): Promise<Message[]> {
+  return pg<Message[]>`
+    SELECT
+      id, phone_number AS phoneNumber,
+      body, created_at AS createdAt
     FROM messages
-    WHERE id = $1
+    WHERE phone_number = ${phone}
   `;
-  return db.oneOrNone<Message>(query, [id]);
 }
