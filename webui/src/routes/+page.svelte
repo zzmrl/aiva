@@ -19,16 +19,17 @@
   });
 </script>
 
-<div class="container mx-auto max-w-6xl">
-  <div class="inline-flex justify-between w-full">
-    <h1 class="text-2xl font-bold text-center mb-6">
-      <span class="text-primary">Automate.It Virtual Assistant</span> Message Archive
+<div class="container mx-auto max-w-6xl mb-6">
+  <div class="flex flex-col md:flex-row md:inline-flex justify-between w-full gap-2">
+    <h1 class="text-xl font-bold text-center">
+      <span class="text-primary text-nowrap">Automate.It Virtual Assistant</span><wbr />
+      <span class="text-nowrap">Messages Archive</span>
     </h1>
-    <input type="text" placeholder="Search" class="input w-24 md:w-auto" />
+    <input type="text" placeholder="Search" class="input w-full md:w-48 lg:w-64 xl:w-80" />
   </div>
 </div>
 
-<div class="container mx-auto max-w-6xl">
+<div class="container mx-auto max-w-6xl mb-6">
   {#if loading && !messages}
     <div class="flex justify-center items-center py-12">
       <span class="loading loading-spinner loading-lg"></span>

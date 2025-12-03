@@ -21,6 +21,6 @@
     </div>
   </nav>
 </header>
-<main class="px-4 py-4">
+<main class="p-2 md:p-4">
   {@render children()}
 </main>
