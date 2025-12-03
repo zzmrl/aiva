@@ -95,7 +95,7 @@ app.post("/sms", async (req, res) => {
 app.get("/messages", async (_req: Request, res: Response) => {
   const messages = await getAllMessages();
 
-  res.json({ messages });
+  res.json(messages);
 });
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

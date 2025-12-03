@@ -32,8 +32,8 @@ export async function insertMessage(
 export async function getAllMessages(): Promise<Message[]> {
   return pg`
     SELECT
-      id, phone_number AS phoneNumber,
-      body, created_at AS createdAt
+      id, phone_number AS "phoneNumber",
+      body, created_at AS "createdAt"
     FROM messages
     ORDER BY created_at DESC
   `;
@@ -47,8 +47,8 @@ export async function getAllMessages(): Promise<Message[]> {
 export async function getMessageById(id: number): Promise<Message | null> {
   const [message] = await pg<Message[]>`
     SELECT
-      id, phone_number AS phoneNumber,
-      body, created_at AS createdAt
+      id, phone_number AS "phoneNumber",
+      body, created_at AS "createdAt"
     FROM messages
     WHERE id = ${id}
   `;
@@ -63,8 +63,8 @@ export async function getMessageById(id: number): Promise<Message | null> {
 export async function getMessagesByPhone(phone: string): Promise<Message[]> {
   return pg<Message[]>`
     SELECT
-      id, phone_number AS phoneNumber,
-      body, created_at AS createdAt
+      id, phone_number AS "phoneNumber",
+      body, created_at AS "createdAt"
     FROM messages
     WHERE phone_number = ${phone}
   `;
