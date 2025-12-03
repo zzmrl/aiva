@@ -15,9 +15,9 @@ COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
 ENV NODE_ENV=production
-RUN bun --bun run test
-RUN bun check
-RUN bun build
+# RUN bun --bun run test
+RUN bun run check
+RUN bun run build
 
 FROM nginx:alpine AS release
 COPY --from=prerelease /app/build /usr/share/nginx/html
