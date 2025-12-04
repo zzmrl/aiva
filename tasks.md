@@ -29,10 +29,14 @@
     * [ ] Setup integration tests
     * [ ] All working
 8. Deploy & test
-9. Monitor & maintain
-    * [ ] Setup monitoring
-    * [ ] Setup alerts
-    * [ ] Setup backups
-    * [ ] Setup CI/CD pipeline
-10. Future:
-    * [ ] Virtualize message cards (will be a performance issue when scaling)
+
+Future:
+
+* Monitor & maintain
+  * [ ] Setup monitoring
+  * [ ] Setup alerts
+  * [ ] Setup backups
+  * [ ] Setup CI/CD pipeline
+* UI
+  * [ ] Virtualize or paginate message cards (will be a performance issue when scaling)
+  * [ ] Use websockets for real-time updates

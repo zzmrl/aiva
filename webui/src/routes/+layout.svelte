@@ -15,7 +15,7 @@
   <header class="navbar bg-base-100 shadow-sm">
     <nav class="flex w-full items-center max-w-6xl mx-auto">
       <div class="flex-1">
-        <a class="font-bold text-primary text-2xl" href={resolve('/')}>
+        <a class="font-bold text-primary text-xl" href={resolve('/')}>
           Automate.It Virtual Assistant
         </a>
       </div>
@@ -24,7 +24,7 @@
       </div>
     </nav>
   </header>
-  <main class="p-2 md:p-4">
+  <main class="p-2 md:p-4 overflow-scroll">
     {@render children()}
   </main>
 </div>
