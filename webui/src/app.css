@@ -5,7 +5,7 @@
   --hdr-gradient: radial-gradient(
     farthest-corner circle at 200% 200% in oklab,
     var(--color-primary),
-    19%,
+    10%,
     var(--color-base-100)
   );
 

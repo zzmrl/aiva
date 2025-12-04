@@ -47,9 +47,7 @@
 
 <div class="container mx-auto max-w-6xl mb-6">
   <div class="flex flex-col md:flex-row md:inline-flex justify-between w-full gap-2">
-    <h1 class="text-xl font-bold text-center">
-      <span class="text-nowrap">Message Archive</span>
-    </h1>
+    <h1 class="text-xl font-bold text-center">Message Archive</h1>
     <input
       type="text"
       placeholder="Search messages..."
