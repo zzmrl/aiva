@@ -11,16 +11,20 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-<header class="navbar bg-base-100 shadow-sm">
-  <nav class="flex w-full items-center max-w-6xl mx-auto">
-    <div class="flex-1">
-      <a class="font-bold text-primary" href={resolve('/')}>AIVA</a>
-    </div>
-    <div class="flex gap-2">
-      <ThemeSwap />
-    </div>
-  </nav>
-</header>
-<main class="p-2 md:p-4">
-  {@render children()}
-</main>
+<div class="h-screen overflow-hidden">
+  <header class="navbar bg-base-100 shadow-sm">
+    <nav class="flex w-full items-center max-w-6xl mx-auto">
+      <div class="flex-1">
+        <a class="font-bold text-primary text-2xl" href={resolve('/')}>
+          Automate.It Virtual Assistant
+        </a>
+      </div>
+      <div class="flex gap-2">
+        <ThemeSwap />
+      </div>
+    </nav>
+  </header>
+  <main class="p-2 md:p-4">
+    {@render children()}
+  </main>
+</div>
