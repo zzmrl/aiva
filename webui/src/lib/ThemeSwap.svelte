@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let size = 6;
+  let { size = 6 } = $props();
 </script>
 
 <label class="swap swap-rotate">
