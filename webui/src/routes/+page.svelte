@@ -27,15 +27,12 @@
 
     const lowerQuery = query.toLowerCase().trim();
     return messages.filter((message) => {
-      // Search in phone number
-      if (message.phoneNumber.toLowerCase().includes(lowerQuery)) {
+      if (message.phoneNumber.includes(lowerQuery.replace(/\+|\(|\)|-|\s/g, ''))) {
         return true;
       }
-      // Search in message body
       if (message.body.toLowerCase().includes(lowerQuery)) {
         return true;
       }
-      // Search in ID
       if (message.id.toString().includes(lowerQuery)) {
         return true;
       }
@@ -49,29 +46,30 @@
   <div class="flex flex-col md:flex-row md:inline-flex justify-between w-full gap-2">
     <h1 class="text-xl font-bold text-center">Message Archive</h1>
     <input
-      type="text"
+      type="search"
       placeholder="Search messages..."
+      aria-label="Search messages"
       class="input w-full md:w-80"
       bind:value={searchQuery}
     />
   </div>
 </div>
 <div class="container mx-auto max-w-6xl mb-6">
-  {#if loading && !messages}
-    <div class="flex justify-center items-center py-12">
+  {#if loading}
+    <div class="flex justify-center items-center py-12" role="status" aria-label="Loading messages">
       <span class="loading loading-spinner loading-lg"></span>
     </div>
   {:else if error}
-    <div class="alert alert-error">
+    <div class="alert alert-error" role="alert">
       <ErrorIcon />
       <span>Something went wrong loading messages. Please try again later.</span>
     </div>
   {:else if messages && messages.length === 0}
-    <div class="text-center py-12">
+    <div class="text-center py-12" role="status">
       <p class="text-base-content/60">No messages yet.</p>
     </div>
   {:else if filteredMessages.length === 0 && searchQuery.trim()}
-    <div class="text-center py-12">
+    <div class="text-center py-12" role="status">
       <p class="text-base-content/60">No messages found matching "{searchQuery}".</p>
       <button class="btn btn-sm btn-ghost mt-2" onclick={() => (searchQuery = '')}>
         Clear search
@@ -79,7 +77,7 @@
     </div>
   {:else}
     {#if searchQuery.trim()}
-      <div class="mb-4 text-sm text-base-content/60">
+      <div class="mb-4 text-sm text-base-content/60" role="status" aria-live="polite">
         Showing {filteredMessages.length} of {messages.length} messages
       </div>
     {/if}

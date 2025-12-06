@@ -23,6 +23,12 @@ export const mockMessages: Message[] = [
     body: 'Message from the same number',
     createdAt: new Date('2024-01-13T09:20:00Z'),
   },
+  {
+    id: 23754,
+    phoneNumber: '8258876333',
+    body: 'Message that has a unique identifier',
+    createdAt: new Date('2024-01-24T15:45:00Z'),
+  },
 ];
 
 /**
@@ -62,12 +68,13 @@ export async function setupMockApiFailure(page: Page) {
 
 /**
  * Wait for messages to finish loading
+ *
+ * Either messages appear, empty state, or error
  */
 export async function waitForMessagesLoaded(page: Page) {
-  // Wait for loading spinner to disappear or messages to appear
   await Promise.race([
-    page.waitForSelector('.card', { state: 'visible' }),
-    page.waitForSelector('text=No messages yet'),
-    page.waitForSelector('.alert-error'),
+    page.getByRole('article').first().waitFor({ state: 'visible' }),
+    page.getByText('No messages yet').waitFor({ state: 'visible' }),
+    page.getByRole('alert').waitFor({ state: 'visible' }),
   ]);
 }

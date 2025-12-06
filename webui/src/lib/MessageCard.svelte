@@ -24,16 +24,17 @@
   }
 
   function formatPhoneNumber(phone: string): string {
-    // Format as (XXX) XXX-XXXX if it's a 10-digit number
     const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 10) {
-      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    const match = cleaned.match(/^(1|)?(\d{3})(\d{3})(\d{4})$/);
+    if (match) {
+      const intlCode = match[1] ? '+1 ' : '';
+      return `${intlCode}(${match[2]}) ${match[3]}-${match[4]}`;
     }
     return phone;
   }
 </script>
 
-<div class="card bg-base-200 shadow-md hover:shadow-lg transition-shadow">
+<article class="card bg-base-200 shadow-md hover:shadow-lg transition-shadow">
   <div class="card-body">
     <div class="flex justify-between items-start mb-2">
       <div class="flex-1">
@@ -52,4 +53,4 @@
       {message.body}
     </p>
   </div>
-</div>
+</article>

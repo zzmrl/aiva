@@ -15,14 +15,12 @@ test.describe('Message Archive Integration Tests', () => {
   test('should load and display messages on page load', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.locator('h1')).toContainText('Message Archive');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Message Archive');
     await waitForMessagesLoaded(page);
 
-    // Verify messages are displayed
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
 
-    // Verify first message content
-    const firstMessage = page.locator('.card').first();
+    const firstMessage = page.getByRole('article').first();
     await expect(firstMessage).toContainText('(555) 123-4567');
     await expect(firstMessage).toContainText('Hello, this is a test message');
     await expect(firstMessage).toContainText('#1');
@@ -32,8 +30,8 @@ test.describe('Message Archive Integration Tests', () => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    await expect(page.locator('text=(555) 123-4567')).toBeVisible();
-    await expect(page.locator('text=(555) 987-6543')).toBeVisible();
+    await expect(page.getByText('(555) 123-4567').first()).toBeVisible();
+    await expect(page.getByText('(555) 987-6543')).toBeVisible();
   });
 
   test('should search messages by phone number', async ({ page }) => {
@@ -41,114 +39,104 @@ test.describe('Message Archive Integration Tests', () => {
     await waitForMessagesLoaded(page);
 
     // Wait for messages to load
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
 
     // Type in search box
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
     await searchInput.fill('5551234567');
 
     // Should filter to show only messages from that number
-    await expect(page.locator('.card')).toHaveCount(2);
-    await expect(page.locator('text=(555) 123-4567')).toHaveCount(2);
-    await expect(page.locator('text=(555) 987-6543')).not.toBeVisible();
+    await expect(page.getByRole('article')).toHaveCount(2);
+    await expect(page.getByText('(555) 123-4567')).toHaveCount(2);
+    await expect(page.getByText('(555) 987-6543')).not.toBeVisible();
   });
 
   test('should search messages by message body', async ({ page }) => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
 
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
     await searchInput.fill('different content');
 
     // Should show only the matching message
-    await expect(page.locator('.card')).toHaveCount(1);
-    await expect(page.locator('text=Another message with different content')).toBeVisible();
+    await expect(page.getByRole('article')).toHaveCount(1);
+    await expect(page.getByText('Another message with different content')).toBeVisible();
   });
 
   test('should search messages by ID', async ({ page }) => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
 
-    const searchInput = page.locator('input[placeholder*="Search"]');
-    await searchInput.fill('2');
+    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
+    await searchInput.fill('23754');
 
-    // Should show message with ID 2
-    await expect(page.locator('.card')).toHaveCount(1);
-    await expect(page.locator('text=#2')).toBeVisible();
+    await expect(page.getByRole('article').filter({ visible: true })).toHaveCount(1);
+    await expect(page.getByText('#23754')).toBeVisible();
   });
 
   test('should show search results count when filtering', async ({ page }) => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
 
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
     await searchInput.fill('5551234567');
 
-    // Should show filtered count
-    await expect(page.locator('text=Showing 2 of 3 messages')).toBeVisible();
+    await expect(page.getByText(`Showing 2 of ${mockMessages.length} messages`)).toBeVisible();
   });
 
   test('should clear search when clicking clear button', async ({ page }) => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
 
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
     await searchInput.fill('nonexistent');
 
-    // Should show no results message
-    await expect(page.locator('text=No messages found matching')).toBeVisible();
+    await expect(page.getByText('No messages found matching')).toBeVisible();
 
-    // Click clear button
-    await page.locator('button:has-text("Clear search")').click();
+    await page.getByRole('button', { name: 'Clear search' }).click();
 
-    // Should show all messages again
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
     await expect(searchInput).toHaveValue('');
   });
 
   test('should display empty state when no messages', async ({ page }) => {
-    // Override route to return empty array
     await setupMockApi(page, []);
 
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    await expect(page.locator('text=No messages yet')).toBeVisible();
-    await expect(page.locator('.card')).toHaveCount(0);
+    await expect(page.getByText('No messages yet')).toBeVisible();
+    await expect(page.getByRole('article')).toHaveCount(0);
   });
 
   test('should display error state when API fails', async ({ page }) => {
-    // Override route to return error
     await setupMockApiError(page, 500);
 
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    // Should show error message
     await expect(
-      page.locator('text=Something went wrong loading messages. Please try again later.'),
+      page.getByText('Something went wrong loading messages. Please try again later.'),
     ).toBeVisible();
-    await expect(page.locator('.alert-error')).toBeVisible();
+    await expect(page.getByRole('alert')).toBeVisible();
   });
 
   test('should display error state when API is unreachable', async ({ page }) => {
-    // Override route to abort
     await setupMockApiFailure(page);
 
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    // Should show error message
     await expect(
-      page.locator('text=Something went wrong loading messages. Please try again later.'),
+      page.getByText('Something went wrong loading messages. Please try again later.'),
     ).toBeVisible();
   });
 
@@ -166,50 +154,48 @@ test.describe('Message Archive Integration Tests', () => {
     await page.goto('/');
 
     // Should show loading spinner initially
-    await expect(page.locator('.loading-spinner')).toBeVisible();
+    await expect(page.getByRole('status', { name: 'Loading messages' })).toBeVisible();
   });
 
   test('should handle case-insensitive search', async ({ page }) => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
 
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
     await searchInput.fill('HELLO');
 
     // Should find message regardless of case
-    await expect(page.locator('.card')).toHaveCount(1);
-    await expect(page.locator('text=Hello, this is a test message')).toBeVisible();
+    await expect(page.getByRole('article')).toHaveCount(1);
+    await expect(page.getByText('Hello, this is a test message')).toBeVisible();
   });
 
   test('should handle partial phone number search', async ({ page }) => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
 
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
     await searchInput.fill('123-4567');
 
     // Should find messages with matching phone number
-    await expect(page.locator('.card')).toHaveCount(2);
+    await expect(page.getByRole('article')).toHaveCount(2);
   });
 
   test('should display messages in correct order (newest first)', async ({ page }) => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
 
-    // First card should be the newest message (ID 1)
-    const firstCard = page.locator('.card').first();
+    const firstCard = page.getByRole('article').first();
     await expect(firstCard).toContainText('#1');
     await expect(firstCard).toContainText('Hello, this is a test message');
 
-    // Last card should be the oldest message (ID 3)
-    const lastCard = page.locator('.card').last();
-    await expect(lastCard).toContainText('#3');
+    const lastCard = page.getByRole('article').last();
+    await expect(lastCard).toContainText('#23754');
   });
 
   test('should format dates correctly in message cards', async ({ page }) => {
@@ -239,9 +225,13 @@ test.describe('Message Archive Integration Tests', () => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    // Check that date formatting appears (exact text depends on timing, so we check for presence)
-    const firstCard = page.locator('.card').first();
-    await expect(firstCard.locator('text=/\\d+m ago|Just now/')).toBeVisible();
+    const firstCard = page.getByRole('article').nth(0);
+    const secondCard = page.getByRole('article').nth(1);
+    const thirdCard = page.getByRole('article').nth(2);
+
+    await expect(firstCard.getByText(/Just now$/)).toBeVisible();
+    await expect(secondCard.getByText(/\d+m ago/)).toBeVisible();
+    await expect(thirdCard.getByText(/\d+h ago/)).toBeVisible();
   });
 
   test('should handle search with special characters', async ({ page }) => {
@@ -258,21 +248,21 @@ test.describe('Message Archive Integration Tests', () => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
     await searchInput.fill('@special');
 
-    await expect(page.locator('.card')).toHaveCount(1);
-    await expect(page.locator('text=@special #characters')).toBeVisible();
+    await expect(page.getByRole('article')).toHaveCount(1);
+    await expect(page.getByText('@special #characters')).toBeVisible();
   });
 
   test('should handle whitespace-only search query', async ({ page }) => {
     await page.goto('/');
     await waitForMessagesLoaded(page);
 
-    const searchInput = page.locator('input[placeholder*="Search"]');
+    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
     await searchInput.fill('   '); // Only whitespace
 
     // Should show all messages (whitespace is trimmed)
-    await expect(page.locator('.card')).toHaveCount(mockMessages.length);
+    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
   });
 });

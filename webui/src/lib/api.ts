@@ -11,5 +11,10 @@ const apiHost = PUBLIC_API_HOST;
 
 export async function getMessages(): Promise<Message[]> {
   const response = await fetch(`${apiHost}/messages`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch messages: ${response.status}`);
+  }
+
   return response.json();
 }

@@ -15,7 +15,7 @@
     "lint": "bun --bun prettier --check . && bun --bun eslint .",
     "test:unit": "bun --bun vitest",
     "test": "bun test:unit --run && bun test:e2e",
-    "test:e2e": "bun --bun playwright test"
+    "test:e2e": "bun playwright test"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.1",
