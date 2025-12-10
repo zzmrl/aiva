@@ -9,6 +9,8 @@
     "build": "tsc",
     "start": "bun run app/index.ts",
     "dev": "DEBUG=api bun --watch run app/index.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
     "lint": "eslint app --ext .ts",
     "type-check": "tsc --noEmit"
   },
