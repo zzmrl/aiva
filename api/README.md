@@ -6,6 +6,8 @@ Used bun for development but will likely work with other runtimes and package ma
 
 ## Development
 
+In order to receive webhook requests during development, you will need to use a service like [ngrok](https://ngrok.com/).
+
 ### Install dependencies
 ```bash
 bun install
@@ -18,7 +20,7 @@ bun dev
 
 ### Build
 ```bash
-bun build
+bun run build
 ```
 
 ### Run production build

@@ -7,12 +7,27 @@ We plan to expand this with tool calls and other useful features as we build.
 
 ## Requirements
 
+* `docker` and `docker-compose` installed on the system
+
 Ensure you have all necessary secret files:
 
 * `./secrets/postgres_password`
 * `./secrets/postgres_user`
 
 They can contain any values but they should be kept static once initialized.
+
+## Usage
+
+`docker compose up` to start a complete production environment
+
+## Development
+
+Requires
+
+* `bun` to run development servers, 
+* `docker` and `docker-compose` only required to run database container
+
+Run `scripts/dev` to build the database in docker and launch development servers for the API and web UI.
 
 ## Components
 * Processing Backend and API

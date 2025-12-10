@@ -26,8 +26,8 @@
     * [x] gradient bg
 6. Setup NGINX
 7. Test
-    * [ ] Setup integration tests
-    * [ ] All working
+    * [x] Setup integration tests
+    * [x] All working
 8. Deploy & test
 
 Future:
