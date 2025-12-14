@@ -7,7 +7,7 @@ export type Message = {
   createdAt: Date;
 };
 
-const apiHost = PUBLIC_API_HOST;
+const apiHost = PUBLIC_API_HOST ?? 'http://localhost:3000';
 
 export async function getMessages(): Promise<Message[]> {
   const response = await fetch(`${apiHost}/messages`);
