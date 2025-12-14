@@ -1,10 +1,6 @@
-<script>
-  let { size = 6 } = $props();
-</script>
-
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  class="stroke-current shrink-0 h-{size} w-{size}"
+  class="stroke-current shrink-0 h-6 w-6"
   fill="none"
   viewBox="0 0 24 24"
 >
