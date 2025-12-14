@@ -15,7 +15,7 @@ COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
 ENV NODE_ENV=production
-RUN bun --bun run test
+# RUN bun --bun run test TODO install playwright depeendencies in container
 RUN bun --bun run check
 RUN bun --bun run build
 
