@@ -1,9 +1,8 @@
-import { SQL } from "bun";
+import { SQL, file } from "bun";
 
 async function readSecret(filePath: string): Promise<string> {
-  const file = Bun.file(filePath);
   try {
-    const text = await file.text();
+    const text = await file(filePath).text();
     return text.trim();
   } catch (_error) {
     throw new Error(`Failed to read secret file: ${filePath}`);

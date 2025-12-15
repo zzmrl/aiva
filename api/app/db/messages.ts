@@ -1,4 +1,4 @@
-import { pg } from "./db";
+import { pg } from "./client";
 
 export type Message = {
   id: number;
@@ -10,7 +10,7 @@ export type Message = {
 export type CreateMessageInput = Pick<Message, "phoneNumber" | "body">;
 
 /**
- * Insert a new message into the database
+ * Insert a new message
  * @param input - The message data to insert
  * @returns The inserted message
  */
@@ -26,7 +26,7 @@ export async function insertMessage(
 }
 
 /**
- * Get all messages from the database
+ * Get all messages
  * @returns Array of all messages
  */
 export async function getAllMessages(): Promise<Message[]> {

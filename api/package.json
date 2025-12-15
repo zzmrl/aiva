@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "description": "Automate.It Virtual Assistant API",
-  "main": "app/index.ts",
+  "main": "index.ts",
   "scripts": {
     "build": "tsc",
-    "start": "bun run app/index.ts",
-    "dev": "DEBUG=api bun --watch run app/index.ts",
+    "start": "bun run index.ts",
+    "dev": "DEBUG=api bun --watch run index.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "lint": "eslint app --ext .ts",
@@ -22,6 +22,7 @@
     "debug": "^4.4.3",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
+    "openai": "^6.10.0",
     "pino-http": "^11.0.0",
     "twilio": "^5.10.7",
     "typescript": "^5.9.3"

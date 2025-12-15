@@ -7,7 +7,7 @@ import cors from "cors";
 import helmet from "helmet";
 import twilio from "twilio";
 import pino from "pino-http";
-import { insertMessage, getAllMessages } from "./messages";
+import { insertMessage, getAllMessages } from "./db/messages";
 
 export function createApp() {
   const app = express();
