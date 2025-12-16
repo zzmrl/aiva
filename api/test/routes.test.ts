@@ -1,5 +1,5 @@
 import { describe, expect, it, mock, beforeEach, afterAll } from "bun:test";
-import type { Message } from "../app/messages";
+import type { Message } from "../app";
 
 const mockInsertMessage = mock(
   (_input: { body: string; phoneNumber: string }) =>
@@ -12,16 +12,16 @@ const mockInsertMessage = mock(
 );
 const mockGetAllMessages = mock(() => Promise.resolve<Message[]>([]));
 
-mock.module("../app/messages", () => ({
+mock.module("../app/db/messages", () => ({
   insertMessage: mockInsertMessage,
   getAllMessages: mockGetAllMessages,
 }));
 
-mock.module("../app/db", () => ({
+mock.module("../app/db/client", () => ({
   pg: mock(() => Promise.resolve([])),
 }));
 
-const { createApp } = await import("../app/app");
+const { createApp } = await import("../app");
 
 const app = createApp();
 

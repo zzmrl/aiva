@@ -1,11 +1,11 @@
 import { describe, expect, it, mock, beforeEach } from "bun:test";
-import type { Message, CreateMessageInput } from "../app/messages";
+import type { Message, CreateMessageInput } from "../app/db/messages";
 
 const mockQuery = mock<() => Promise<Message | Message[]>>(() =>
   Promise.resolve([]),
 );
 
-mock.module("../app/db", () => ({
+mock.module("../app/db/client", () => ({
   pg: Object.assign(mockQuery, {
     // Tagged template literal support
     [Symbol.for("bun:sql")]: true,
@@ -13,7 +13,7 @@ mock.module("../app/db", () => ({
 }));
 
 const { insertMessage, getAllMessages, getMessageById, getMessagesByPhone } =
-  await import("../app/messages");
+  await import("../app/db/messages");
 
 describe("Messages Module", () => {
   beforeEach(() => {
