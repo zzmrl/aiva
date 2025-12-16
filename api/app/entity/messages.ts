@@ -1,4 +1,4 @@
-import { sql } from "./client";
+import { sql } from "../db";
 
 export type Message = {
   id: number;

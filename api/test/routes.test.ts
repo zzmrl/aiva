@@ -12,12 +12,12 @@ const mockInsertMessage = mock(
 );
 const mockGetAllMessages = mock(() => Promise.resolve<Message[]>([]));
 
-mock.module("../app/db/messages", () => ({
+mock.module("../app/entity/messages", () => ({
   insertMessage: mockInsertMessage,
   getAllMessages: mockGetAllMessages,
 }));
 
-mock.module("../app/db/client", () => ({
+mock.module("../app/db", () => ({
   sql: mock(() => Promise.resolve([])),
 }));
 

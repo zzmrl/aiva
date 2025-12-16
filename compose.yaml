@@ -46,6 +46,9 @@ services:
   web:
     build: ./webui
     restart: unless-stopped
+    environment:
+      PUBLIC_API_HOST: http://api:3000
+      VENICE_API_KEY: $VENICE_API_KEY
     ports:
       - "80:80"
       - "443:443"
