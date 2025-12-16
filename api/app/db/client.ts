@@ -27,7 +27,7 @@ const dbPassword = await readSecret(dbPasswordFile);
 const dbUser = await readSecret(dbUserFile);
 const dbName = await readSecret(dbNameFile);
 
-export const pg = new SQL({
+export const sql = new SQL({
   host: dbHost,
   port: dbPort,
   database: dbName,

@@ -1,4 +1,4 @@
-import { pg } from "./client";
+import { sql } from "./client";
 
 export type Message = {
   id: number;
@@ -17,7 +17,7 @@ export type CreateMessageInput = Pick<Message, "phoneNumber" | "body">;
 export async function insertMessage(
   input: CreateMessageInput,
 ): Promise<Message> {
-  return pg<Message>`
+  return sql<Message>`
     INSERT INTO messages (phone_number, body)
     VALUES (${input.phoneNumber}, ${input.body})
     RETURNING id, phone_number AS phoneNumber,
@@ -30,7 +30,7 @@ export async function insertMessage(
  * @returns Array of all messages
  */
 export async function getAllMessages(): Promise<Message[]> {
-  return pg`
+  return sql`
     SELECT
       id, phone_number AS "phoneNumber",
       body, created_at AS "createdAt"
@@ -45,7 +45,7 @@ export async function getAllMessages(): Promise<Message[]> {
  * @returns The message if found, null otherwise
  */
 export async function getMessageById(id: number): Promise<Message | null> {
-  const [message] = await pg<Message[]>`
+  const [message] = await sql<Message[]>`
     SELECT
       id, phone_number AS "phoneNumber",
       body, created_at AS "createdAt"
@@ -61,7 +61,7 @@ export async function getMessageById(id: number): Promise<Message | null> {
  * @returns List of messages if found, empty array otherwise
  */
 export async function getMessagesByPhone(phone: string): Promise<Message[]> {
-  return pg<Message[]>`
+  return sql<Message[]>`
     SELECT
       id, phone_number AS "phoneNumber",
       body, created_at AS "createdAt"

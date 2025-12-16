@@ -6,7 +6,7 @@ const mockQuery = mock<() => Promise<Message | Message[]>>(() =>
 );
 
 mock.module("../app/db/client", () => ({
-  pg: Object.assign(mockQuery, {
+  sql: Object.assign(mockQuery, {
     // Tagged template literal support
     [Symbol.for("bun:sql")]: true,
   }),

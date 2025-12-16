@@ -18,7 +18,7 @@ mock.module("../app/db/messages", () => ({
 }));
 
 mock.module("../app/db/client", () => ({
-  pg: mock(() => Promise.resolve([])),
+  sql: mock(() => Promise.resolve([])),
 }));
 
 const { createApp } = await import("../app");
