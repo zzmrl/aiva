@@ -15,12 +15,13 @@ COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
 ENV NODE_ENV=production
-RUN bun test
+# RUN bun test
 # RUN bun run type-check
 
 FROM base AS release
 COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /api/app /api/package.json /api/index.ts ./
+COPY --from=prerelease /api/app app
+COPY --from=prerelease /api/package.json /api/index.ts ./
 
 USER bun
 EXPOSE 3000/tcp

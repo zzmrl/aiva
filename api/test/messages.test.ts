@@ -1,19 +1,27 @@
 import { describe, expect, it, mock, beforeEach } from "bun:test";
-import type { Message, CreateMessageInput } from "../app/db/messages";
+import type { Message, CreateMessageInput } from "../app/entity/messages";
 
 const mockQuery = mock<() => Promise<Message | Message[]>>(() =>
   Promise.resolve([]),
 );
 
-mock.module("../app/db/client", () => ({
+mock.module("../app/db", () => ({
   sql: Object.assign(mockQuery, {
     // Tagged template literal support
     [Symbol.for("bun:sql")]: true,
   }),
 }));
 
+// TODO correct this
+mock.module("../app/llm/client", () => ({
+  default: Object.assign(mockQuery, {
+    // Tagged template literal support
+    [Symbol.for("bun:sql")]: true,
+  }),
+}));
+
 const { insertMessage, getAllMessages, getMessageById, getMessagesByPhone } =
-  await import("../app/db/messages");
+  await import("../app/entity/messages");
 
 describe("Messages Module", () => {
   beforeEach(() => {

@@ -8,6 +8,7 @@ import helmet from "helmet";
 import twilio from "twilio";
 import pino from "pino-http";
 import { insertMessage, getAllMessages } from "./entity/messages";
+import { smsCompletion } from "./llm/completions";
 
 export function createApp() {
   const app = express();
@@ -79,8 +80,16 @@ export function createApp() {
       phoneNumber: req.body.From,
     });
 
+    const llmResponse = await smsCompletion(req.body.Body);
+
+    // TODO start a worker to insert this record?
+    // await insertMessage({
+    //   body: llmResponse,
+    //   phoneNumber: req.body.To,
+    // });
+
     const twiml = new twilio.twiml.MessagingResponse();
-    twiml.message("Message received by Automate It.");
+    twiml.message(llmResponse);
 
     res.status(201).type("text/xml").send(twiml.toString());
   });

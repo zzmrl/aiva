@@ -172,7 +172,6 @@ describe("API Routes", () => {
       expect(xml).toContain("<?xml version");
       expect(xml).toContain("<Response>");
       expect(xml).toContain("<Message>");
-      expect(xml).toContain("Message received by Automate It.");
 
       expect(mockInsertMessage).toHaveBeenCalledWith({
         body: "Hello from SMS",
