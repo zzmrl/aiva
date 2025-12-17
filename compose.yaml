@@ -2,6 +2,12 @@ name: aiva
 services:
   api:
     build: ./api
+    develop:
+      watch:
+        - path: ./api/app
+          action: sync+restart
+          target: /api/app
+          initial_sync: true
     restart: unless-stopped
     ports:
       - ${API_PORT:-3000}:${API_PORT:-3000}
@@ -13,7 +19,7 @@ services:
       DATABASE_NAME_FILE: /run/secrets/postgres_db
       DATABASE_HOST: database
       DATABASE_PORT: 5432
-      VENICE_API_KEY: $VENICE_API_KEY
+      VENICE_API_KEY_FILE: /run/secrets/venice_api_key
     depends_on:
       database:
         condition: service_healthy
@@ -21,6 +27,7 @@ services:
       - postgres_password
       - postgres_user
       - postgres_db
+      - venice_api_key
 
   database:
     image: postgres:18-alpine
@@ -67,6 +74,8 @@ secrets:
     file: ./secrets/postgres_user
   postgres_db:
     file: ./secrets/postgres_user
+  venice_api_key:
+    file: ./secrets/venice_api_key
 
 volumes:
   postgres_data:

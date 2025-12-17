@@ -26,6 +26,10 @@ export async function smsCompletion(prompt: string): Promise<string> {
       },
       { role: "user", content: prompt },
     ],
+    // @ts-expect-error OpenAI client does not support venice_parameters
+    venice_parameters: {
+      enable_web_search: "auto",
+    },
   });
 
   return response.choices[0]?.message.content || "";

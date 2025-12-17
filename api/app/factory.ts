@@ -15,10 +15,10 @@ export function createApp() {
 
   app.use(helmet());
   app.use(cors());
+  // ensure that pino-pretty is activated only in development
   app.use(
-    pino({
-      // ensure that pino-pretty is activated only in development
-      ...(process.stdout.isTTY
+    pino(
+      process.stdout.isTTY
         ? {
             transport: {
               target: "pino-pretty",
@@ -27,8 +27,8 @@ export function createApp() {
               },
             },
           }
-        : {}),
-    }),
+        : {},
+    ),
   );
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -82,11 +82,10 @@ export function createApp() {
 
     const llmResponse = await smsCompletion(req.body.Body);
 
-    // TODO start a worker to insert this record?
-    // await insertMessage({
-    //   body: llmResponse,
-    //   phoneNumber: req.body.To,
-    // });
+    await insertMessage({
+      body: llmResponse,
+      phoneNumber: req.body.To,
+    });
 
     const twiml = new twilio.twiml.MessagingResponse();
     twiml.message(llmResponse);

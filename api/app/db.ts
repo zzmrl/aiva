@@ -1,31 +1,15 @@
-import { SQL, file } from "bun";
-
-async function readSecret(filePath: string): Promise<string> {
-  try {
-    const text = await file(filePath).text();
-    return text.trim();
-  } catch (_error) {
-    throw new Error(`Failed to read secret file: ${filePath}`);
-  }
-}
-
-function getEnvOrThrow(envVarName: string): string {
-  const value = process.env[envVarName];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${envVarName}`);
-  }
-  return value;
-}
+import { SQL } from "bun";
+import { getEnvOrThrow, readFile } from "./utils";
 
 const dbPasswordFile = getEnvOrThrow("DATABASE_PASSWORD_FILE");
 const dbUserFile = getEnvOrThrow("DATABASE_USER_FILE");
 const dbNameFile = getEnvOrThrow("DATABASE_NAME_FILE");
-const dbHost = getEnvOrThrow("DATABASE_HOST");
-const dbPort = getEnvOrThrow("DATABASE_PORT");
+const dbHost = process.env.DATABASE_HOST || "localhost";
+const dbPort = process.env.DATABASE_PORT || 5432;
 
-const dbPassword = await readSecret(dbPasswordFile);
-const dbUser = await readSecret(dbUserFile);
-const dbName = await readSecret(dbNameFile);
+const dbPassword = await readFile(dbPasswordFile);
+const dbUser = await readFile(dbUserFile);
+const dbName = await readFile(dbNameFile);
 
 export const sql = new SQL({
   host: dbHost,
