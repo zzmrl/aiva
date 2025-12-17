@@ -12,6 +12,13 @@ const mockInsertMessage = mock(
 );
 const mockGetAllMessages = mock(() => Promise.resolve<Message[]>([]));
 
+const mockCompletion = mock((_prompt: string) =>
+  Promise.resolve("Mocked completion response"),
+);
+const mockSmsCompletion = mock((_prompt: string) =>
+  Promise.resolve("Mocked SMS response"),
+);
+
 mock.module("../app/entity/messages", () => ({
   insertMessage: mockInsertMessage,
   getAllMessages: mockGetAllMessages,
@@ -19,6 +26,11 @@ mock.module("../app/entity/messages", () => ({
 
 mock.module("../app/db", () => ({
   sql: mock(() => Promise.resolve([])),
+}));
+
+mock.module("../app/llm/completions", () => ({
+  completion: mockCompletion,
+  smsCompletion: mockSmsCompletion,
 }));
 
 const { createApp } = await import("../app");
@@ -37,6 +49,8 @@ describe("API Routes", () => {
   beforeEach(() => {
     mockInsertMessage.mockClear();
     mockGetAllMessages.mockClear();
+    mockCompletion.mockClear();
+    mockSmsCompletion.mockClear();
   });
 
   describe("GET /health", () => {
@@ -148,7 +162,7 @@ describe("API Routes", () => {
   });
 
   describe("POST /sms", () => {
-    it("should save SMS and return TwiML response", async () => {
+    it("should save SMS and return TwiML response with LLM completion", async () => {
       mockInsertMessage.mockResolvedValueOnce({
         id: 1,
         phoneNumber: "+15551234567",
@@ -172,11 +186,13 @@ describe("API Routes", () => {
       expect(xml).toContain("<?xml version");
       expect(xml).toContain("<Response>");
       expect(xml).toContain("<Message>");
+      expect(xml).toContain("Mocked SMS response");
 
       expect(mockInsertMessage).toHaveBeenCalledWith({
         body: "Hello from SMS",
         phoneNumber: "+15551234567",
       });
+      expect(mockSmsCompletion).toHaveBeenCalledWith("Hello from SMS");
     });
 
     it("should return 400 when Body is missing", async () => {
