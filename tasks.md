@@ -40,3 +40,7 @@ Future:
 * UI
   * [ ] Virtualize or paginate message cards (will be a performance issue when scaling)
   * [ ] Use websockets for real-time updates
+* API
+  * [ ] Install prisma ORM (or another way to streamline migrations)
+  * [ ] Implement pagination for messages endpoint
+  * [ ] Implement search functionality for messages endpoint
