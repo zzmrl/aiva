@@ -60,8 +60,8 @@ export function createApp() {
 
     await insertMessage({
       body: req.body.TranscriptionText,
-      to: req.body.To,
-      from: req.body.From,
+      receiver: req.body.To,
+      sender: req.body.From,
     });
 
     res.status(201).send();
@@ -75,16 +75,16 @@ export function createApp() {
 
     await insertMessage({
       body: req.body.Body,
-      to: req.body.To,
-      from: req.body.From,
+      receiver: req.body.To,
+      sender: req.body.From,
     });
 
     const llmResponse = await smsCompletion(req.body.Body);
 
     await insertMessage({
       body: llmResponse,
-      to: req.body.From,
-      from: req.body.To,
+      receiver: req.body.From,
+      sender: req.body.To,
     });
 
     const twiml = new twilio.twiml.MessagingResponse();

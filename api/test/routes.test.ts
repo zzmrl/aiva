@@ -1,14 +1,15 @@
 import { describe, expect, it, mock, beforeEach, afterAll } from "bun:test";
 import type { Message, InsertMessageInput } from "../app";
 
-const mockInsertMessage = mock((_input: InsertMessageInput) =>
-  Promise.resolve({
-    id: 1,
-    to: "",
-    from: "",
-    body: "",
-    created: new Date(),
-  }),
+const mockInsertMessage = mock(
+  (_input: InsertMessageInput): Promise<Message> =>
+    Promise.resolve({
+      id: 1,
+      receiver: "",
+      sender: "",
+      body: "",
+      created: new Date(),
+    }),
 );
 const mockGetAllMessages = mock(() => Promise.resolve<Message[]>([]));
 
@@ -86,8 +87,8 @@ describe("API Routes", () => {
     it("should save transcription and return 201", async () => {
       mockInsertMessage.mockResolvedValueOnce({
         id: 1,
-        to: "+15559876543",
-        from: "+15551234567",
+        receiver: "+15559876543",
+        sender: "+15551234567",
         body: "This is a transcribed message",
         created: new Date(),
       });
@@ -105,8 +106,8 @@ describe("API Routes", () => {
       expect(response.status).toBe(201);
       expect(mockInsertMessage).toHaveBeenCalledWith({
         body: "This is a transcribed message",
-        to: "+15559876543",
-        from: "+15551234567",
+        receiver: "+15559876543",
+        sender: "+15551234567",
       });
     });
 
@@ -151,8 +152,8 @@ describe("API Routes", () => {
     it("should save SMS and return TwiML response with LLM completion", async () => {
       mockInsertMessage.mockResolvedValueOnce({
         id: 1,
-        to: "+15559876543",
-        from: "+15551234567",
+        receiver: "+15559876543",
+        sender: "+15551234567",
         body: "Hello from SMS",
         created: new Date(),
       });
@@ -178,8 +179,8 @@ describe("API Routes", () => {
 
       expect(mockInsertMessage).toHaveBeenCalledWith({
         body: "Hello from SMS",
-        to: "+15559876543",
-        from: "+15551234567",
+        receiver: "+15559876543",
+        sender: "+15551234567",
       });
       expect(mockSmsCompletion).toHaveBeenCalledWith("Hello from SMS");
     });
@@ -231,8 +232,8 @@ describe("API Routes", () => {
 
       mockInsertMessage.mockResolvedValueOnce({
         id: 1,
-        to: "+15559876543",
-        from: "+15551234567",
+        receiver: "+15559876543",
+        sender: "+15551234567",
         body: specialBody,
         created: new Date(),
       });
@@ -250,8 +251,8 @@ describe("API Routes", () => {
       expect(response.status).toBe(201);
       expect(mockInsertMessage).toHaveBeenCalledWith({
         body: specialBody,
-        from: "+15551234567",
-        to: "+15559876543",
+        sender: "+15551234567",
+        receiver: "+15559876543",
       });
     });
   });
@@ -261,15 +262,15 @@ describe("API Routes", () => {
       const mockMessages: Message[] = [
         {
           id: 1,
-          from: "+15551234567",
-          to: "+15559876543",
+          sender: "+15551234567",
+          receiver: "+15559876543",
           body: "First message",
           created: new Date("2024-01-15T10:30:00Z"),
         },
         {
           id: 2,
-          from: "+15559876543",
-          to: "+15551234567",
+          sender: "+15559876543",
+          receiver: "+15551234567",
           body: "Second message",
           created: new Date("2024-01-16T10:30:00Z"),
         },

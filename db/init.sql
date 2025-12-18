@@ -3,14 +3,14 @@
 
 CREATE TABLE IF NOT EXISTS messages (
     id SERIAL PRIMARY KEY,
-    to VARCHAR(20) NOT NULL,
-    from VARCHAR(20) NOT NULL,
+    sender VARCHAR(20) NOT NULL,
+    receiver VARCHAR(20) NOT NULL,
     body TEXT NOT NULL,
     created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_messages_to ON messages(to);
+CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver);
 
-CREATE INDEX IF NOT EXISTS idx_messages_from ON messages(from);
+CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender);
 
 CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created);

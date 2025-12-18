@@ -2,13 +2,13 @@ import { sql } from "../db";
 
 export type Message = {
   id: number;
-  to: string;
-  from: string;
+  receiver: string;
+  sender: string;
   body: string;
   created: Date;
 };
 
-export type InsertMessageInput = Pick<Message, "to" | "from" | "body">;
+export type InsertMessageInput = Pick<Message, "receiver" | "sender" | "body">;
 
 /**
  * Insert a new message
@@ -19,10 +19,8 @@ export async function insertMessage(
   input: InsertMessageInput,
 ): Promise<Message> {
   return sql`
-    INSERT INTO messages (to, from, body)
-    VALUES (${input.to}, ${input.from}, ${input.body})
-    RETURNING id, to, from,
-      body, created
+    INSERT INTO messages ${sql(input)}
+    RETURNING *
   `;
 }
 
@@ -32,7 +30,7 @@ export async function insertMessage(
  */
 export async function getAllMessages(): Promise<Message[]> {
   return sql`
-    SELECT id, to, from, body, created
+    SELECT *
     FROM messages
     ORDER BY created DESC
   `;
@@ -45,7 +43,7 @@ export async function getAllMessages(): Promise<Message[]> {
  */
 export async function getMessageById(id: number): Promise<Message | null> {
   const [message] = await sql`
-    SELECT id, to, from, body, created
+    SELECT *
     FROM messages
     WHERE id = ${id}
   `;
@@ -59,7 +57,7 @@ export async function getMessageById(id: number): Promise<Message | null> {
  */
 export async function getMessagesByPhone(phone: string): Promise<Message[]> {
   return sql`
-    SELECT id, to, from, body, created
+    SELECT *
     FROM messages
     WHERE phone_number = ${phone}
   `;

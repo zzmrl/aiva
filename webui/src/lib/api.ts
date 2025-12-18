@@ -2,8 +2,8 @@ import { PUBLIC_API_HOST } from '$env/static/public';
 
 export type Message = {
   id: number;
-  to: string;
-  from: string;
+  receiver: string;
+  sender: string;
   body: string;
   created: Date;
 };

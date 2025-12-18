@@ -24,8 +24,8 @@ describe("Messages Module", () => {
     it("should insert a message with to, from, and body", async () => {
       const mockMessage: Message = {
         id: 1,
-        to: "+15551234567",
-        from: "+15559876543",
+        receiver: "+15551234567",
+        sender: "+15559876543",
         body: "Hello, world!",
         created: new Date("2024-01-15T10:30:00Z"),
       };
@@ -33,8 +33,8 @@ describe("Messages Module", () => {
       mockQuery.mockResolvedValueOnce(mockMessage);
 
       const input: InsertMessageInput = {
-        to: "+15551234567",
-        from: "+15559876543",
+        receiver: "+15551234567",
+        sender: "+15559876543",
         body: "Hello, world!",
       };
 
@@ -47,8 +47,8 @@ describe("Messages Module", () => {
     it("should handle empty body", async () => {
       const mockMessage: Message = {
         id: 2,
-        to: "+15551234567",
-        from: "+15559876543",
+        receiver: "+15551234567",
+        sender: "+15559876543",
         body: "",
         created: new Date(),
       };
@@ -56,8 +56,8 @@ describe("Messages Module", () => {
       mockQuery.mockResolvedValueOnce(mockMessage);
 
       const input: InsertMessageInput = {
-        to: "+15551234567",
-        from: "+15559876543",
+        receiver: "+15551234567",
+        sender: "+15559876543",
         body: "",
       };
 
@@ -70,8 +70,8 @@ describe("Messages Module", () => {
       const specialBody = "Hello! @user #tag & <script>alert('xss')</script>";
       const mockMessage: Message = {
         id: 3,
-        to: "+15551234567",
-        from: "+15559876543",
+        receiver: "+15551234567",
+        sender: "+15559876543",
         body: specialBody,
         created: new Date(),
       };
@@ -79,8 +79,8 @@ describe("Messages Module", () => {
       mockQuery.mockResolvedValueOnce(mockMessage);
 
       const input: InsertMessageInput = {
-        to: "+15551234567",
-        from: "+15559876543",
+        receiver: "+15551234567",
+        sender: "+15559876543",
         body: specialBody,
       };
 
@@ -95,15 +95,15 @@ describe("Messages Module", () => {
       const mockMessages: Message[] = [
         {
           id: 2,
-          to: "+15551234567",
-          from: "+15559876543",
+          receiver: "+15551234567",
+          sender: "+15559876543",
           body: "Newer message",
           created: new Date("2024-01-16T10:30:00Z"),
         },
         {
           id: 1,
-          to: "+15559876543",
-          from: "+15551234567",
+          receiver: "+15559876543",
+          sender: "+15551234567",
           body: "Older message",
           created: new Date("2024-01-15T10:30:00Z"),
         },
@@ -132,8 +132,8 @@ describe("Messages Module", () => {
     it("should return a message when found", async () => {
       const mockMessage: Message = {
         id: 1,
-        to: "+15551234567",
-        from: "+15559876543",
+        receiver: "+15551234567",
+        sender: "+15559876543",
         body: "Test message",
         created: new Date("2024-01-15T10:30:00Z"),
       };
@@ -161,15 +161,15 @@ describe("Messages Module", () => {
       const mockMessages: Message[] = [
         {
           id: 1,
-          to: "+15551234567",
-          from: "+15559876543",
+          receiver: "+15551234567",
+          sender: "+15559876543",
           body: "First message",
           created: new Date("2024-01-15T10:30:00Z"),
         },
         {
           id: 3,
-          to: "+15551234567",
-          from: "+15559876543",
+          receiver: "+15551234567",
+          sender: "+15559876543",
           body: "Third message from same number",
           created: new Date("2024-01-17T10:30:00Z"),
         },
@@ -182,7 +182,7 @@ describe("Messages Module", () => {
       expect(mockQuery).toHaveBeenCalled();
       expect(result).toEqual(mockMessages);
       expect(result).toHaveLength(2);
-      expect(result.every((m) => m.to === "+15551234567")).toBe(true);
+      expect(result.every((m) => m.receiver === "+15551234567")).toBe(true);
     });
 
     it("should return empty array when no messages for phone number", async () => {
