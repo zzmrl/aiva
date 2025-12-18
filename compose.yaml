@@ -48,6 +48,7 @@ services:
         -U $$(cat /run/secrets/postgres_user)
         -d $$(cat /run/secrets/postgres_db)
       interval: 30s
+      start_period: 5s
       timeout: 10s
       retries: 5
 
@@ -61,11 +62,6 @@ services:
       - "443:443"
     volumes:
       - nginx_logs:/var/log/nginx
-    depends_on:
-      database:
-        condition: service_healthy
-      # api:
-      #   condition: service_healthy
 
 secrets:
   postgres_password:
@@ -76,6 +72,8 @@ secrets:
     file: ./secrets/postgres_user
   venice_api_key:
     file: ./secrets/venice_api_key
+  database_url:
+    file: ./secrets/database_url
 
 volumes:
   postgres_data:

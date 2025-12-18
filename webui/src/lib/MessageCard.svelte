@@ -39,10 +39,10 @@
     <div class="flex justify-between items-start mb-2">
       <div class="flex-1">
         <h3 class="card-title text-sm font-semibold text-base-content/80">
-          {formatPhoneNumber(message.phoneNumber)}
+          {formatPhoneNumber(message.from)}
         </h3>
         <p class="text-xs text-base-content/60 mt-1">
-          {formatDate(message.createdAt)}
+          {formatDate(message.created)}
         </p>
       </div>
       <div class="badge badge-outline badge-sm">

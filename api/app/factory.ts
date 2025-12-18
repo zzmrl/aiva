@@ -34,10 +34,7 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true }));
 
   app.get("/health", (_req: Request, res: Response) => {
-    res.status(200).json({
-      status: "ok",
-      timestamp: new Date().toISOString(),
-    });
+    res.status(200).send();
   });
 
   app.post("/voice", (_req, res) => {
@@ -56,35 +53,38 @@ export function createApp() {
   });
 
   app.post("/voiceTranscribe", async (req, res) => {
-    if (!req.body.TranscriptionText || !req.body.From) {
+    if (!req.body.TranscriptionText || !req.body.From || !req.body.To) {
       res.status(400).send("Missing required fields");
       return;
     }
 
     await insertMessage({
       body: req.body.TranscriptionText,
-      phoneNumber: req.body.From,
+      to: req.body.To,
+      from: req.body.From,
     });
 
     res.status(201).send();
   });
 
   app.post("/sms", async (req, res) => {
-    if (!req.body.Body || !req.body.From) {
+    if (!req.body.Body || !req.body.From || !req.body.To) {
       res.status(400).send("Missing required fields");
       return;
     }
 
     await insertMessage({
       body: req.body.Body,
-      phoneNumber: req.body.From,
+      to: req.body.To,
+      from: req.body.From,
     });
 
     const llmResponse = await smsCompletion(req.body.Body);
 
     await insertMessage({
       body: llmResponse,
-      phoneNumber: req.body.To,
+      to: req.body.From,
+      from: req.body.To,
     });
 
     const twiml = new twilio.twiml.MessagingResponse();

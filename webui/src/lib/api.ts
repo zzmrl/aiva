@@ -2,9 +2,10 @@ import { PUBLIC_API_HOST } from '$env/static/public';
 
 export type Message = {
   id: number;
-  phoneNumber: string;
+  to: string;
+  from: string;
   body: string;
-  createdAt: Date;
+  created: Date;
 };
 
 const apiHost = PUBLIC_API_HOST ?? 'http://localhost:3000';

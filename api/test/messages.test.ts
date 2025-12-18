@@ -1,5 +1,5 @@
 import { describe, expect, it, mock, beforeEach } from "bun:test";
-import type { Message, CreateMessageInput } from "../app/entity/messages";
+import type { Message, InsertMessageInput } from "../app/entity/messages";
 
 const mockQuery = mock<() => Promise<Message | Message[]>>(() =>
   Promise.resolve([]),
@@ -7,14 +7,6 @@ const mockQuery = mock<() => Promise<Message | Message[]>>(() =>
 
 mock.module("../app/db", () => ({
   sql: Object.assign(mockQuery, {
-    // Tagged template literal support
-    [Symbol.for("bun:sql")]: true,
-  }),
-}));
-
-// TODO correct this
-mock.module("../app/llm/client", () => ({
-  default: Object.assign(mockQuery, {
     // Tagged template literal support
     [Symbol.for("bun:sql")]: true,
   }),
@@ -29,18 +21,20 @@ describe("Messages Module", () => {
   });
 
   describe("insertMessage", () => {
-    it("should insert a message with phone number and body", async () => {
+    it("should insert a message with to, from, and body", async () => {
       const mockMessage: Message = {
         id: 1,
-        phoneNumber: "+15551234567",
+        to: "+15551234567",
+        from: "+15559876543",
         body: "Hello, world!",
-        createdAt: new Date("2024-01-15T10:30:00Z"),
+        created: new Date("2024-01-15T10:30:00Z"),
       };
 
       mockQuery.mockResolvedValueOnce(mockMessage);
 
-      const input: CreateMessageInput = {
-        phoneNumber: "+15551234567",
+      const input: InsertMessageInput = {
+        to: "+15551234567",
+        from: "+15559876543",
         body: "Hello, world!",
       };
 
@@ -53,15 +47,17 @@ describe("Messages Module", () => {
     it("should handle empty body", async () => {
       const mockMessage: Message = {
         id: 2,
-        phoneNumber: "+15551234567",
+        to: "+15551234567",
+        from: "+15559876543",
         body: "",
-        createdAt: new Date(),
+        created: new Date(),
       };
 
       mockQuery.mockResolvedValueOnce(mockMessage);
 
-      const input: CreateMessageInput = {
-        phoneNumber: "+15551234567",
+      const input: InsertMessageInput = {
+        to: "+15551234567",
+        from: "+15559876543",
         body: "",
       };
 
@@ -74,15 +70,17 @@ describe("Messages Module", () => {
       const specialBody = "Hello! @user #tag & <script>alert('xss')</script>";
       const mockMessage: Message = {
         id: 3,
-        phoneNumber: "+15551234567",
+        to: "+15551234567",
+        from: "+15559876543",
         body: specialBody,
-        createdAt: new Date(),
+        created: new Date(),
       };
 
       mockQuery.mockResolvedValueOnce(mockMessage);
 
-      const input: CreateMessageInput = {
-        phoneNumber: "+15551234567",
+      const input: InsertMessageInput = {
+        to: "+15551234567",
+        from: "+15559876543",
         body: specialBody,
       };
 
@@ -97,15 +95,17 @@ describe("Messages Module", () => {
       const mockMessages: Message[] = [
         {
           id: 2,
-          phoneNumber: "+15551234567",
+          to: "+15551234567",
+          from: "+15559876543",
           body: "Newer message",
-          createdAt: new Date("2024-01-16T10:30:00Z"),
+          created: new Date("2024-01-16T10:30:00Z"),
         },
         {
           id: 1,
-          phoneNumber: "+15559876543",
+          to: "+15559876543",
+          from: "+15551234567",
           body: "Older message",
-          createdAt: new Date("2024-01-15T10:30:00Z"),
+          created: new Date("2024-01-15T10:30:00Z"),
         },
       ];
 
@@ -132,9 +132,10 @@ describe("Messages Module", () => {
     it("should return a message when found", async () => {
       const mockMessage: Message = {
         id: 1,
-        phoneNumber: "+15551234567",
+        to: "+15551234567",
+        from: "+15559876543",
         body: "Test message",
-        createdAt: new Date("2024-01-15T10:30:00Z"),
+        created: new Date("2024-01-15T10:30:00Z"),
       };
 
       mockQuery.mockResolvedValueOnce([mockMessage]);
@@ -160,15 +161,17 @@ describe("Messages Module", () => {
       const mockMessages: Message[] = [
         {
           id: 1,
-          phoneNumber: phone,
+          to: "+15551234567",
+          from: "+15559876543",
           body: "First message",
-          createdAt: new Date("2024-01-15T10:30:00Z"),
+          created: new Date("2024-01-15T10:30:00Z"),
         },
         {
           id: 3,
-          phoneNumber: phone,
+          to: "+15551234567",
+          from: "+15559876543",
           body: "Third message from same number",
-          createdAt: new Date("2024-01-17T10:30:00Z"),
+          created: new Date("2024-01-17T10:30:00Z"),
         },
       ];
 
@@ -179,7 +182,7 @@ describe("Messages Module", () => {
       expect(mockQuery).toHaveBeenCalled();
       expect(result).toEqual(mockMessages);
       expect(result).toHaveLength(2);
-      expect(result.every((m) => m.phoneNumber === phone)).toBe(true);
+      expect(result.every((m) => m.to === "+15551234567")).toBe(true);
     });
 
     it("should return empty array when no messages for phone number", async () => {

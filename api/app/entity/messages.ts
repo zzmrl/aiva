@@ -2,12 +2,13 @@ import { sql } from "../db";
 
 export type Message = {
   id: number;
-  phoneNumber: string;
+  to: string;
+  from: string;
   body: string;
-  createdAt: Date;
+  created: Date;
 };
 
-export type CreateMessageInput = Pick<Message, "phoneNumber" | "body">;
+export type InsertMessageInput = Pick<Message, "to" | "from" | "body">;
 
 /**
  * Insert a new message
@@ -15,13 +16,13 @@ export type CreateMessageInput = Pick<Message, "phoneNumber" | "body">;
  * @returns The inserted message
  */
 export async function insertMessage(
-  input: CreateMessageInput,
+  input: InsertMessageInput,
 ): Promise<Message> {
-  return sql<Message>`
-    INSERT INTO messages (phone_number, body)
-    VALUES (${input.phoneNumber}, ${input.body})
-    RETURNING id, phone_number AS phoneNumber,
-      body, created_at AS createdAt
+  return sql`
+    INSERT INTO messages (to, from, body)
+    VALUES (${input.to}, ${input.from}, ${input.body})
+    RETURNING id, to, from,
+      body, created
   `;
 }
 
@@ -31,11 +32,9 @@ export async function insertMessage(
  */
 export async function getAllMessages(): Promise<Message[]> {
   return sql`
-    SELECT
-      id, phone_number AS "phoneNumber",
-      body, created_at AS "createdAt"
+    SELECT id, to, from, body, created
     FROM messages
-    ORDER BY created_at DESC
+    ORDER BY created DESC
   `;
 }
 
@@ -45,10 +44,8 @@ export async function getAllMessages(): Promise<Message[]> {
  * @returns The message if found, null otherwise
  */
 export async function getMessageById(id: number): Promise<Message | null> {
-  const [message] = await sql<Message[]>`
-    SELECT
-      id, phone_number AS "phoneNumber",
-      body, created_at AS "createdAt"
+  const [message] = await sql`
+    SELECT id, to, from, body, created
     FROM messages
     WHERE id = ${id}
   `;
@@ -61,10 +58,8 @@ export async function getMessageById(id: number): Promise<Message | null> {
  * @returns List of messages if found, empty array otherwise
  */
 export async function getMessagesByPhone(phone: string): Promise<Message[]> {
-  return sql<Message[]>`
-    SELECT
-      id, phone_number AS "phoneNumber",
-      body, created_at AS "createdAt"
+  return sql`
+    SELECT id, to, from, body, created
     FROM messages
     WHERE phone_number = ${phone}
   `;

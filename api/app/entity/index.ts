@@ -1,1 +1,1 @@
-export { type Message, type CreateMessageInput } from "./messages";
+export { type Message, type InsertMessageInput } from "./messages";

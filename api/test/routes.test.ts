@@ -1,14 +1,14 @@
 import { describe, expect, it, mock, beforeEach, afterAll } from "bun:test";
-import type { Message } from "../app";
+import type { Message, InsertMessageInput } from "../app";
 
-const mockInsertMessage = mock(
-  (_input: { body: string; phoneNumber: string }) =>
-    Promise.resolve({
-      id: 1,
-      phoneNumber: "",
-      body: "",
-      createdAt: new Date(),
-    }),
+const mockInsertMessage = mock((_input: InsertMessageInput) =>
+  Promise.resolve({
+    id: 1,
+    to: "",
+    from: "",
+    body: "",
+    created: new Date(),
+  }),
 );
 const mockGetAllMessages = mock(() => Promise.resolve<Message[]>([]));
 
@@ -56,25 +56,8 @@ describe("API Routes", () => {
   describe("GET /health", () => {
     it("should return health status with 200", async () => {
       const response = await fetch(`${baseUrl}/health`);
-      const data = (await response.json()) as {
-        status: string;
-        timestamp: string;
-      };
 
       expect(response.status).toBe(200);
-      expect(data.status).toBe("ok");
-      expect(data.timestamp).toBeDefined();
-    });
-
-    it("should return valid ISO timestamp", async () => {
-      const response = await fetch(`${baseUrl}/health`);
-      const data = (await response.json()) as {
-        status: string;
-        timestamp: string;
-      };
-
-      const timestamp = new Date(data.timestamp);
-      expect(timestamp.toISOString()).toBe(data.timestamp);
     });
   });
 
@@ -103,9 +86,10 @@ describe("API Routes", () => {
     it("should save transcription and return 201", async () => {
       mockInsertMessage.mockResolvedValueOnce({
         id: 1,
-        phoneNumber: "+15551234567",
+        to: "+15559876543",
+        from: "+15551234567",
         body: "This is a transcribed message",
-        createdAt: new Date(),
+        created: new Date(),
       });
 
       const response = await fetch(`${baseUrl}/voiceTranscribe`, {
@@ -114,13 +98,15 @@ describe("API Routes", () => {
         body: new URLSearchParams({
           TranscriptionText: "This is a transcribed message",
           From: "+15551234567",
+          To: "+15559876543",
         }),
       });
 
       expect(response.status).toBe(201);
       expect(mockInsertMessage).toHaveBeenCalledWith({
         body: "This is a transcribed message",
-        phoneNumber: "+15551234567",
+        to: "+15559876543",
+        from: "+15551234567",
       });
     });
 
@@ -165,9 +151,10 @@ describe("API Routes", () => {
     it("should save SMS and return TwiML response with LLM completion", async () => {
       mockInsertMessage.mockResolvedValueOnce({
         id: 1,
-        phoneNumber: "+15551234567",
+        to: "+15559876543",
+        from: "+15551234567",
         body: "Hello from SMS",
-        createdAt: new Date(),
+        created: new Date(),
       });
 
       const response = await fetch(`${baseUrl}/sms`, {
@@ -176,6 +163,7 @@ describe("API Routes", () => {
         body: new URLSearchParams({
           Body: "Hello from SMS",
           From: "+15551234567",
+          To: "+15559876543",
         }),
       });
 
@@ -190,7 +178,8 @@ describe("API Routes", () => {
 
       expect(mockInsertMessage).toHaveBeenCalledWith({
         body: "Hello from SMS",
-        phoneNumber: "+15551234567",
+        to: "+15559876543",
+        from: "+15551234567",
       });
       expect(mockSmsCompletion).toHaveBeenCalledWith("Hello from SMS");
     });
@@ -201,6 +190,7 @@ describe("API Routes", () => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           From: "+15551234567",
+          To: "+15559876543",
         }),
       });
 
@@ -214,6 +204,21 @@ describe("API Routes", () => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           Body: "Test message",
+          To: "+15559876543",
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(mockInsertMessage).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when To is missing", async () => {
+      const response = await fetch(`${baseUrl}/sms`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          Body: "Test message",
+          From: "+15551234567",
         }),
       });
 
@@ -226,9 +231,10 @@ describe("API Routes", () => {
 
       mockInsertMessage.mockResolvedValueOnce({
         id: 1,
-        phoneNumber: "+15551234567",
+        to: "+15559876543",
+        from: "+15551234567",
         body: specialBody,
-        createdAt: new Date(),
+        created: new Date(),
       });
 
       const response = await fetch(`${baseUrl}/sms`, {
@@ -237,13 +243,15 @@ describe("API Routes", () => {
         body: new URLSearchParams({
           Body: specialBody,
           From: "+15551234567",
+          To: "+15559876543",
         }),
       });
 
       expect(response.status).toBe(201);
       expect(mockInsertMessage).toHaveBeenCalledWith({
         body: specialBody,
-        phoneNumber: "+15551234567",
+        from: "+15551234567",
+        to: "+15559876543",
       });
     });
   });
@@ -253,15 +261,17 @@ describe("API Routes", () => {
       const mockMessages: Message[] = [
         {
           id: 1,
-          phoneNumber: "+15551234567",
+          from: "+15551234567",
+          to: "+15559876543",
           body: "First message",
-          createdAt: new Date("2024-01-15T10:30:00Z"),
+          created: new Date("2024-01-15T10:30:00Z"),
         },
         {
           id: 2,
-          phoneNumber: "+15559876543",
+          from: "+15559876543",
+          to: "+15551234567",
           body: "Second message",
-          createdAt: new Date("2024-01-16T10:30:00Z"),
+          created: new Date("2024-01-16T10:30:00Z"),
         },
       ];
 
