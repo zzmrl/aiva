@@ -27,7 +27,7 @@
 
     const lowerQuery = query.toLowerCase().trim();
     return messages.filter((message) => {
-      if (message.phoneNumber.includes(lowerQuery.replace(/\+|\(|\)|-|\s/g, ''))) {
+      if (message.sender.includes(lowerQuery.replace(/\+|\(|\)|-|\s/g, ''))) {
         return true;
       }
       if (message.body.toLowerCase().includes(lowerQuery)) {
