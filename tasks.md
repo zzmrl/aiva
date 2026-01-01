@@ -1,6 +1,6 @@
 1. Setup twilio
     * [x] Setup Account
-    * [ ] Save API key
+    * [x] Save API key
 2. Setup project directory and compose.yaml
    * [x] services
         * [x] backend - node.js, express
@@ -28,7 +28,11 @@
 7. Test
     * [x] Setup integration tests
     * [x] All working
-8. Deploy & test
+8. Setup Conversation
+    * [x] Send entire conversation to LLM for text messages
+    * [ ] Update UI to display messages as back and forth conversations
+    * [ ] Implement a voice conversation
+9. Deploy & test
 
 Future:
 
@@ -44,3 +48,6 @@ Future:
   * [ ] Install prisma ORM (or another way to streamline migrations)
   * [ ] Implement pagination for messages endpoint
   * [ ] Implement search functionality for messages endpoint
+  * [ ] Implement rate limiting
+  * [ ] Use RCS messaging
+    * [ ] When user typing, delay response

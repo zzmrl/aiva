@@ -12,17 +12,24 @@ const mockInsertMessage = mock(
     }),
 );
 const mockGetAllMessages = mock(() => Promise.resolve<Message[]>([]));
+const mockGetConversation = mock(() => Promise.resolve<Message[]>([]));
 
 const mockCompletion = mock((_prompt: string) =>
   Promise.resolve("Mocked completion response"),
 );
-const mockSmsCompletion = mock((_prompt: string) =>
-  Promise.resolve("Mocked SMS response"),
+const mockSmsCompletion = mock(
+  (_prompt: string, _conversationHistory: Message[], _assistantPhone: string) =>
+    Promise.resolve("Mocked SMS response"),
+);
+const mockTextCompletion = mock(
+  (_prompt: string, _conversationHistory: Message[], _assistantPhone: string) =>
+    Promise.resolve("Mocked text response"),
 );
 
 mock.module("../app/entity/messages", () => ({
   insertMessage: mockInsertMessage,
   getAllMessages: mockGetAllMessages,
+  getConversation: mockGetConversation,
 }));
 
 mock.module("../app/db", () => ({
@@ -32,6 +39,7 @@ mock.module("../app/db", () => ({
 mock.module("../app/llm/completions", () => ({
   completion: mockCompletion,
   smsCompletion: mockSmsCompletion,
+  textCompletion: mockTextCompletion,
 }));
 
 const { createApp } = await import("../app");
@@ -50,6 +58,7 @@ describe("API Routes", () => {
   beforeEach(() => {
     mockInsertMessage.mockClear();
     mockGetAllMessages.mockClear();
+    mockGetConversation.mockClear();
     mockCompletion.mockClear();
     mockSmsCompletion.mockClear();
   });
@@ -175,14 +184,19 @@ describe("API Routes", () => {
       expect(xml).toContain("<?xml version");
       expect(xml).toContain("<Response>");
       expect(xml).toContain("<Message>");
-      expect(xml).toContain("Mocked SMS response");
+      expect(xml).toContain("Mocked text response");
 
       expect(mockInsertMessage).toHaveBeenCalledWith({
         body: "Hello from SMS",
         receiver: "+15559876543",
         sender: "+15551234567",
       });
-      expect(mockSmsCompletion).toHaveBeenCalledWith("Hello from SMS");
+      expect(mockGetConversation).toHaveBeenCalledWith(
+        "+15551234567",
+        "+15559876543",
+        30,
+      );
+      expect(mockTextCompletion).toHaveBeenCalledWith([]);
     });
 
     it("should return 400 when Body is missing", async () => {

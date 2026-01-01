@@ -7,8 +7,12 @@ import cors from "cors";
 import helmet from "helmet";
 import twilio from "twilio";
 import pino from "pino-http";
-import { insertMessage, getAllMessages } from "./entity/messages";
-import { smsCompletion } from "./llm/completions";
+import {
+  insertMessage,
+  getAllMessages,
+  getConversation,
+} from "./entity/messages";
+import { textCompletion } from "./llm/completions";
 
 export function createApp() {
   const app = express();
@@ -79,7 +83,18 @@ export function createApp() {
       sender: req.body.From,
     });
 
-    const llmResponse = await smsCompletion(req.body.Body);
+    const conversationHistory = await getConversation(
+      req.body.From,
+      req.body.To,
+      30,
+    );
+
+    const llmResponse = await textCompletion(
+      conversationHistory.map((message) => ({
+        role: message.sender === req.body.To ? "assistant" : "user",
+        content: message.body,
+      })),
+    );
 
     await insertMessage({
       body: llmResponse,

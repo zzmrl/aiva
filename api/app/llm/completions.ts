@@ -14,7 +14,14 @@ export async function completion(prompt: string): Promise<string> {
   return response.choices[0]?.message.content || "";
 }
 
-export async function smsCompletion(prompt: string): Promise<string> {
+type CompletionMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export async function textCompletion(
+  messages: CompletionMessage[],
+): Promise<string> {
   const response = await client.chat.completions.create({
     model: MODEL,
     messages: [
@@ -24,7 +31,7 @@ export async function smsCompletion(prompt: string): Promise<string> {
         content:
           "You are a responding through SMS, so keep your responses short and concise.",
       },
-      { role: "user", content: prompt },
+      ...messages,
     ],
     // @ts-expect-error OpenAI client does not support venice_parameters
     venice_parameters: {

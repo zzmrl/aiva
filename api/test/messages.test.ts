@@ -21,7 +21,7 @@ describe("Messages Module", () => {
   });
 
   describe("insertMessage", () => {
-    it("should insert a message with to, from, and body", async () => {
+    it("should insert a message with receiver, sender, and body", async () => {
       const mockMessage: Message = {
         id: 1,
         receiver: "+15551234567",
@@ -30,7 +30,7 @@ describe("Messages Module", () => {
         created: new Date("2024-01-15T10:30:00Z"),
       };
 
-      mockQuery.mockResolvedValueOnce(mockMessage);
+      mockQuery.mockResolvedValue(mockMessage);
 
       const input: InsertMessageInput = {
         receiver: "+15551234567",
@@ -53,7 +53,7 @@ describe("Messages Module", () => {
         created: new Date(),
       };
 
-      mockQuery.mockResolvedValueOnce(mockMessage);
+      mockQuery.mockResolvedValue(mockMessage);
 
       const input: InsertMessageInput = {
         receiver: "+15551234567",
@@ -76,7 +76,7 @@ describe("Messages Module", () => {
         created: new Date(),
       };
 
-      mockQuery.mockResolvedValueOnce(mockMessage);
+      mockQuery.mockResolvedValue(mockMessage);
 
       const input: InsertMessageInput = {
         receiver: "+15551234567",
@@ -91,7 +91,7 @@ describe("Messages Module", () => {
   });
 
   describe("getAllMessages", () => {
-    it("should return all messages ordered by created_at desc", async () => {
+    it("should return all messages ordered by created desc", async () => {
       const mockMessages: Message[] = [
         {
           id: 2,
