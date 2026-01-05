@@ -51,3 +51,4 @@ Future:
   * [ ] Implement rate limiting
   * [ ] Use RCS messaging
     * [ ] When user typing, delay response
+  * [ ] Throttle API calls and check limits at request
