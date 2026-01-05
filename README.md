@@ -1,74 +1,201 @@
 # Automate.It Virtual Assistant (AIVA)
 
-A virtual assistant application for the automate.it platform.
+A virtual assistant application that processes phone calls and text messages via Twilio webhooks, featuring AI-powered conversational SMS responses through Venice AI integration.
 
-For now, it records transcribed phone calls and text messages to a database.
-We plan to expand this with tool calls and other useful features as we build.
+## Features
+
+- **Voice Call Handling**: Records and transcribes incoming phone calls via Twilio
+- **Conversational SMS**: AI-powered text message responses using Venice AI LLM with web search capabilities
+- **Message Storage**: PostgreSQL database for persistent message history
+- **Web Interface**: Modern SvelteKit UI to view and manage messages
+- **RESTful API**: Express/TypeScript backend for message management
+
+## Architecture
+
+### Three-Tier Docker Stack
+
+1. **API Backend** (`api/`)
+   - Express + TypeScript server on Bun runtime
+   - Twilio webhook handlers for voice and SMS
+   - Venice AI integration for LLM completions
+   - PostgreSQL database interactions
+
+2. **Database**
+   - PostgreSQL 18 Alpine
+   - Message storage with indexed queries
+   - Docker secrets-based credential management
+
+3. **Web UI** (`webui/`)
+   - SvelteKit 2 + Tailwind CSS 4 + DaisyUI
+   - NGINX-served static build
+   - Real-time message viewing
+
+### Tech Stack
+
+- **Runtime**: Bun
+- **Backend**: Express, TypeScript
+- **Frontend**: SvelteKit 2, Tailwind CSS 4, DaisyUI
+- **Database**: PostgreSQL 18
+- **AI**: Venice AI (OpenAI-compatible API)
+- **Telephony**: Twilio Voice & SMS
+- **Infrastructure**: Docker Compose
 
 ## Requirements
 
-* `docker` and `docker-compose` installed on the system
+- Docker and Docker Compose
+- Bun (for local development)
+- Twilio account with phone number
+- Venice AI API key
 
-Ensure you have all necessary secret files:
+### Required Secret Files
 
-* `./secrets/postgres_password`
-* `./secrets/postgres_user`
+Create these files in `./secrets/` directory:
 
-They can contain any values but they should be kept static once initialized.
+- `postgres_password` - Database password
+- `postgres_user` - Database username
+- `venice_api_key` - Venice AI API key
 
-## Usage
+## Quick Start
 
-`docker compose up` to start a complete production environment
+### Production
+
+```bash
+# Start complete stack
+docker compose up
+```
+
+The API will be available at `http://localhost:3000` and the web UI at `http://localhost:8080`.
+
+### Development
+
+Requires Bun and Docker installed.
+
+```bash
+# Start database + both dev servers
+./scripts/dev
+```
+
+Or run manually:
+
+```bash
+# Start database
+docker compose up -d database
+
+# Terminal 1: API dev server
+cd api && bun dev
+
+# Terminal 2: Web UI dev server
+cd webui && bun dev
+```
 
 ## Development
 
-Requires
+### API Development
 
-* `bun` to run development servers, 
-* `docker` and `docker-compose` only required to run database container
+```bash
+cd api
+bun install           # Install dependencies
+bun dev              # Dev server with hot reload
+bun test             # Run tests
+bun test:watch       # Watch mode
+bun run build        # Build for production
+bun type-check       # Type checking
+bun lint             # Lint code
+```
 
-Run `scripts/dev` to build the database in docker and launch development servers for the API and web UI.
+### Web UI Development
 
-## Components
-* Processing Backend and API
-    * Node/express API to handle webhook responses
-    * typescript
-    * Twilio
-        * handles text/call (including transcription)
-        * Has node and python libraries
-        * Webhooks route requests to our backend
-        * Mature solution with many potentially useful features
-* Persistence
-    * postgres SQL
-    * Supabase
-        * Auth: generate Token with supabase
-        * research .5-1 day to find best practices for supabase security
-* Web App
-    * sveltekit static render or simple .html
-* NGINX Reverse Proxy
-* Configure and launch with Docker compose
-* Deploy to AWS?
+```bash
+cd webui
+bun install           # Install dependencies
+bun dev              # Vite dev server
+bun run build        # Production build
+bun check            # Svelte type checking
+bun check:watch      # Watch mode
+bun lint             # ESLint + Prettier
+bun format           # Format code
+bun test             # Run all tests
+bun test:unit        # Unit tests (Vitest)
+bun test:e2e         # E2E tests (Playwright)
+```
 
-### Alternative AWS/cloud-centric solution
+## Testing Webhooks
 
-* Processing Backend and API
-    * Lambda and APIGateway to handle webhook responses
-* Persistence
-    * DynamoDB simple table that stores records of phone number and message
-* Web App
-    * S3 hosting a simple HTML page to display saved messages
-* Serverless CLI deploy
+Use ngrok or a similar tunneling service to expose your local API for Twilio webhook delivery:
 
+```bash
+ngrok http 3000
+```
 
-## Links
+Configure your Twilio phone number to use the ngrok URL for voice and SMS webhooks.
 
-* https://www.twilio.com/docs/voice/tutorials/how-to-record-phone-calls/node
-* https://www.twilio.com/docs/messaging/tutorials/how-to-receive-and-reply/node-js
+## API Endpoints
+
+- `POST /voice` - Twilio voice webhook handler
+- `POST /voiceTranscribe` - Voice transcription callback
+- `POST /sms` - Twilio SMS webhook handler
+- `GET /messages` - Retrieve all messages
+- `GET /messages/:id` - Get message by ID
+- `GET /health` - Health check
+
+## Environment Variables
+
+### API
+
+- `PORT` - Server port (default: 3000)
+- `NODE_ENV` - Environment (development/production)
+- `DATABASE_HOST` - Database host (default: localhost)
+- `DATABASE_PORT` - Database port (default: 5432)
+- `DATABASE_PASSWORD_FILE` - Path to database password secret
+- `DATABASE_USER_FILE` - Path to database user secret
+- `DATABASE_NAME_FILE` - Path to database name secret
+- `VENICE_API_KEY_FILE` - Path to Venice API key secret
+
+### Web UI
+
+- `PUBLIC_API_HOST` - API backend URL (default: http://localhost:3000)
+
+## Project Structure
+
+```
+.
+├── api/                # Express API backend
+│   ├── app/
+│   │   ├── entity/    # Database entity functions
+│   │   ├── llm/       # Venice AI client
+│   │   └── routes/    # API route handlers
+│   └── test/          # API tests
+├── webui/             # SvelteKit frontend
+│   ├── src/
+│   │   ├── routes/    # SvelteKit pages
+│   │   └── lib/       # Components and utilities
+│   └── tests/         # UI tests
+├── db/                # Database initialization scripts
+├── secrets/           # Secret files (gitignored)
+└── scripts/           # Development scripts
+```
+
+## Resources
+
+- [Twilio Voice Recording Tutorial](https://www.twilio.com/docs/voice/tutorials/how-to-record-phone-calls/node)
+- [Twilio SMS Tutorial](https://www.twilio.com/docs/messaging/tutorials/how-to-receive-and-reply/node-js)
+- [Venice AI Documentation](https://docs.venice.ai/)
 
 ## Considerations
 
-* We'll need to consider legal compliance for anything regarding recording
-voice over the phone, which varies from state to state.
+### Legal Compliance
 
-* Call transcriptions cost per call. Its fairly inexpensive, but we'll need 
-to limit this per user or offset the cost with other income sources.
+Recording voice calls requires legal compliance that varies by jurisdiction. Ensure you:
+- Implement proper consent mechanisms
+- Follow state/country-specific recording laws
+- Provide clear disclosure to callers
+
+### Cost Management
+
+- Twilio call transcriptions incur per-call costs
+- Venice AI API usage is metered
+- Consider implementing per-user limits or cost offset strategies
+
+## License
+
+[Add your license here]
