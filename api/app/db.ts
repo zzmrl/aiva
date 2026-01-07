@@ -1,5 +1,18 @@
 import { SQL } from "bun";
-import { getEnvOrThrow, readFile } from "./utils";
+import { readFile } from "./utils";
+
+/**
+ * Get value of environment variable or throw an error if empty or unset
+ * @param envVarName - Name of the environment variable
+ * @returns value of the environment variable
+ */
+export function getEnvOrThrow(envVarName: string): string {
+  const value = process.env[envVarName];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${envVarName}`);
+  }
+  return value;
+}
 
 const dbPasswordFile = getEnvOrThrow("DATABASE_PASSWORD_FILE");
 const dbUserFile = getEnvOrThrow("DATABASE_USER_FILE");
