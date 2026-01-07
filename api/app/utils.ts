@@ -1,15 +1,26 @@
 import { file } from "bun";
 
 /**
- * Read text from a file
- * @param filePath - Path to the file
- * @returns text from the file
+ * Read an environment variable or a file containing the value.
+ * If the environment variable is not set, it will attempt to
+ * read the value from a file specified by the `${varName}_FILE`
+ * environment variable.
+ *
+ * @example
+ * // checks API_KEY for a value, else reads from API_KEY_FILE
+ * const apiKey = await fileEnv("API_KEY");
+ *
+ * @param varName - The name of the environment variable.
+ * @returns The value of the environment variable or the contents of the file.
  */
-export async function readFile(filePath: string): Promise<string> {
-  try {
+export async function fileEnv(varName: string): Promise<string> {
+  const value = process.env[varName];
+  const filePath = process.env[`${varName}_FILE`];
+  if (value) {
+    return value;
+  } else if (filePath) {
     const text = await file(filePath).text();
     return text.trim();
-  } catch (_error) {
-    throw new Error(`Failed to read file: ${filePath}`);
   }
+  throw new Error(`Missing: ${varName} or ${varName}_FILE`);
 }
