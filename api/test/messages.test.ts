@@ -1,5 +1,5 @@
 import { describe, expect, it, mock, beforeEach } from "bun:test";
-import type { Message, InsertMessageInput } from "../app/entity/messages";
+import type { Message, CreateMessageInput } from "../app/modules/message";
 
 const mockQuery = mock<() => Promise<Message | Message[]>>(() =>
   Promise.resolve([]),
@@ -12,8 +12,12 @@ mock.module("../app/db", () => ({
   }),
 }));
 
-const { insertMessage, getAllMessages, getMessageById, getMessagesByPhone } =
-  await import("../app/entity/messages");
+const {
+  create: insertMessage,
+  findMany: getAllMessages,
+  findById: getMessageById,
+  getMessagesByPhone,
+} = await import("../app/modules/message/repository");
 
 describe("Messages Module", () => {
   beforeEach(() => {
@@ -32,7 +36,7 @@ describe("Messages Module", () => {
 
       mockQuery.mockResolvedValue(mockMessage);
 
-      const input: InsertMessageInput = {
+      const input: CreateMessageInput = {
         receiver: "+15551234567",
         sender: "+15559876543",
         body: "Hello, world!",
@@ -55,7 +59,7 @@ describe("Messages Module", () => {
 
       mockQuery.mockResolvedValue(mockMessage);
 
-      const input: InsertMessageInput = {
+      const input: CreateMessageInput = {
         receiver: "+15551234567",
         sender: "+15559876543",
         body: "",
@@ -78,7 +82,7 @@ describe("Messages Module", () => {
 
       mockQuery.mockResolvedValue(mockMessage);
 
-      const input: InsertMessageInput = {
+      const input: CreateMessageInput = {
         receiver: "+15551234567",
         sender: "+15559876543",
         body: specialBody,

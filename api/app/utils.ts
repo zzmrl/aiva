@@ -2,9 +2,6 @@ import { file } from "bun";
 
 /**
  * Read an environment variable or a file containing the value.
- * If the environment variable is not set, it will attempt to
- * read the value from a file specified by the `${varName}_FILE`
- * environment variable.
  *
  * @example
  * // checks API_KEY for a value, else reads from API_KEY_FILE

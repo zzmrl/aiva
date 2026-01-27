@@ -2,12 +2,12 @@
 
 docker compose up -d database
 
-DATABASE_PASSWORD_FILE="./secrets/postgres_password"
-DATABASE_USER_FILE="./secrets/postgres_user"
-DATABASE_NAME_FILE="./secrets/postgres_user"
-DATABASE_HOST="localhost"
-DATABASE_PORT="5432"
+export DATABASE_PASSWORD_FILE="../secrets/postgres_password"
+export DATABASE_USER_FILE="../secrets/postgres_user"
+export DATABASE_NAME_FILE="../secrets/postgres_user"
+export DATABASE_HOST="localhost"
+export DATABASE_PORT="5432"
 
-cd api && bun dev
-
-cd ../webui && bun dev
+cd "$(dirname "$0")/.." || exit 1
+(cd api && bun --bun dev) &&
+(cd webui && bun --bun dev)

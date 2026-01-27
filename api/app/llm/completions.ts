@@ -1,43 +1,39 @@
+import type { ChatCompletionMessageParam } from "openai/resources";
 import client from "./client";
 
-const MODEL = "venice-uncensored";
+const DEFAULT_MODEL = "venice-uncensored";
+const DEFAULT_SETTINGS = {
+  model: DEFAULT_MODEL,
+  venice_parameters: {
+    enable_web_search: "auto",
+  },
+} as const;
+const SYSTEM_BASE = {
+  role: "system",
+  content: "You are a helpful assistant. Try to be concise.",
+} as const;
 
-export async function completion(prompt: string): Promise<string> {
+export type CompletionMessage = ChatCompletionMessageParam;
+
+export async function createCompletion(
+  messages: CompletionMessage[],
+): Promise<string> {
   const response = await client.chat.completions.create({
-    model: MODEL,
-    messages: [
-      { role: "system", content: "You are a helpful assistant" },
-      { role: "user", content: prompt },
-    ],
+    ...DEFAULT_SETTINGS,
+    messages: [SYSTEM_BASE, ...messages],
   });
 
   return response.choices[0]?.message.content || "";
 }
 
-type CompletionMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-export async function textCompletion(
-  messages: CompletionMessage[],
-): Promise<string> {
-  const response = await client.chat.completions.create({
-    model: MODEL,
-    messages: [
-      { role: "system", content: "You are a helpful assistant" },
-      {
-        role: "system",
-        content:
-          "You are a responding through SMS, so keep your responses short and concise.",
-      },
-      ...messages,
-    ],
-    // @ts-expect-error OpenAI client does not support venice_parameters
-    venice_parameters: {
-      enable_web_search: "auto",
-    },
+export async function* streamCompletion(messages: CompletionMessage[]) {
+  const stream = await client.chat.completions.create({
+    ...DEFAULT_SETTINGS,
+    messages: [SYSTEM_BASE, ...messages],
+    stream: true,
   });
 
-  return response.choices[0]?.message.content || "";
+  for await (const chunk of stream) {
+    yield chunk.choices[0]?.delta.content || "";
+  }
 }
