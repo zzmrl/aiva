@@ -27,7 +27,8 @@
     "pino-http": "^11.0.0",
     "telnyx": "^4.6.0",
     "twilio": "^5.10.7",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

@@ -17,18 +17,24 @@ export async function create(input: CreateMessageInput): Promise<Message> {
   return message;
 }
 
+export type MessagesPhoneFilter = {
+  phone?: string;
+};
+export type MessagesFilter = MessagesPhoneFilter;
+
 /**
  * Get all messages
+ * @param filter - Filter options
  * @returns Array of all messages
  */
 export async function findMany(
-  filter: { phone?: string } = {},
+  filter: MessagesFilter = {},
 ): Promise<Message[]> {
   let f = sql``;
   if (filter.phone) {
     f = sql`
-        WHERE sender = ${filter.phone}
-           OR receiver = ${filter.phone}
+      WHERE sender = ${filter.phone}
+       OR receiver = ${filter.phone}
     `;
   }
   return sql`
@@ -76,4 +82,13 @@ export async function findConversation(
     ${ageFilter}
     ORDER BY created ASC
   `;
+}
+
+/**
+ * Get messages for a specific phone number
+ * @param phone - Phone number to filter by (as sender or receiver)
+ * @returns Messages involving this phone number
+ */
+export async function getMessagesByPhone(phone: string): Promise<Message[]> {
+  return findMany({ phone });
 }

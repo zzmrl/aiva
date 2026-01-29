@@ -1,8 +1,8 @@
 import { describe, expect, it, mock, beforeEach, afterAll } from "bun:test";
-import type { Message, InsertMessageInput } from "../app";
+import type { Message, CreateMessageInput } from "../app/modules/message";
 
-const mockInsertMessage = mock(
-  (_input: InsertMessageInput): Promise<Message> =>
+const mockCreate = mock(
+  (_input: CreateMessageInput): Promise<Message> =>
     Promise.resolve({
       id: 1,
       receiver: "",
@@ -11,25 +11,19 @@ const mockInsertMessage = mock(
       created: new Date(),
     }),
 );
-const mockGetAllMessages = mock(() => Promise.resolve<Message[]>([]));
-const mockGetConversation = mock(() => Promise.resolve<Message[]>([]));
+const mockFindMany = mock(() => Promise.resolve<Message[]>([]));
+const mockFindConversation = mock(() => Promise.resolve<Message[]>([]));
 
-const mockCompletion = mock((_prompt: string) =>
-  Promise.resolve("Mocked completion response"),
-);
-const mockSmsCompletion = mock(
-  (_prompt: string, _conversationHistory: Message[], _assistantPhone: string) =>
-    Promise.resolve("Mocked SMS response"),
-);
-const mockTextCompletion = mock(
-  (_prompt: string, _conversationHistory: Message[], _assistantPhone: string) =>
-    Promise.resolve("Mocked text response"),
+const mockCreateCompletion = mock(
+  (_messages: unknown[]) => Promise.resolve("Mocked text response"),
 );
 
-mock.module("../app/entity/messages", () => ({
-  insertMessage: mockInsertMessage,
-  getAllMessages: mockGetAllMessages,
-  getConversation: mockGetConversation,
+mock.module("../app/modules/message/repository", () => ({
+  create: mockCreate,
+  findMany: mockFindMany,
+  findConversation: mockFindConversation,
+  findById: mock(() => Promise.resolve(undefined)),
+  getMessagesByPhone: mock(() => Promise.resolve([])),
 }));
 
 mock.module("../app/db", () => ({
@@ -37,9 +31,8 @@ mock.module("../app/db", () => ({
 }));
 
 mock.module("../app/llm/completions", () => ({
-  completion: mockCompletion,
-  smsCompletion: mockSmsCompletion,
-  textCompletion: mockTextCompletion,
+  createCompletion: mockCreateCompletion,
+  streamCompletion: mock(function* () {}),
 }));
 
 const { createApp } = await import("../app");
@@ -56,11 +49,10 @@ afterAll(() => {
 
 describe("API Routes", () => {
   beforeEach(() => {
-    mockInsertMessage.mockClear();
-    mockGetAllMessages.mockClear();
-    mockGetConversation.mockClear();
-    mockCompletion.mockClear();
-    mockSmsCompletion.mockClear();
+    mockCreate.mockClear();
+    mockFindMany.mockClear();
+    mockFindConversation.mockClear();
+    mockCreateCompletion.mockClear();
   });
 
   describe("GET /health", () => {
@@ -94,7 +86,7 @@ describe("API Routes", () => {
 
   describe("POST /voiceTranscribe", () => {
     it("should save transcription and return 201", async () => {
-      mockInsertMessage.mockResolvedValueOnce({
+      mockCreate.mockResolvedValueOnce({
         id: 1,
         receiver: "+15559876543",
         sender: "+15551234567",
@@ -113,7 +105,7 @@ describe("API Routes", () => {
       });
 
       expect(response.status).toBe(201);
-      expect(mockInsertMessage).toHaveBeenCalledWith({
+      expect(mockCreate).toHaveBeenCalledWith({
         body: "This is a transcribed message",
         receiver: "+15559876543",
         sender: "+15551234567",
@@ -130,7 +122,7 @@ describe("API Routes", () => {
       });
 
       expect(response.status).toBe(400);
-      expect(mockInsertMessage).not.toHaveBeenCalled();
+      expect(mockCreate).not.toHaveBeenCalled();
     });
 
     it("should return 400 when From is missing", async () => {
@@ -143,7 +135,7 @@ describe("API Routes", () => {
       });
 
       expect(response.status).toBe(400);
-      expect(mockInsertMessage).not.toHaveBeenCalled();
+      expect(mockCreate).not.toHaveBeenCalled();
     });
 
     it("should return 400 when body is empty", async () => {
@@ -159,7 +151,7 @@ describe("API Routes", () => {
 
   describe("POST /sms", () => {
     it("should save SMS and return TwiML response with LLM completion", async () => {
-      mockInsertMessage.mockResolvedValueOnce({
+      mockCreate.mockResolvedValueOnce({
         id: 1,
         receiver: "+15559876543",
         sender: "+15551234567",
@@ -186,17 +178,17 @@ describe("API Routes", () => {
       expect(xml).toContain("<Message>");
       expect(xml).toContain("Mocked text response");
 
-      expect(mockInsertMessage).toHaveBeenCalledWith({
+      expect(mockCreate).toHaveBeenCalledWith({
         body: "Hello from SMS",
         receiver: "+15559876543",
         sender: "+15551234567",
       });
-      expect(mockGetConversation).toHaveBeenCalledWith(
+      expect(mockFindConversation).toHaveBeenCalledWith(
         "+15551234567",
         "+15559876543",
         30,
       );
-      expect(mockTextCompletion).toHaveBeenCalledWith([]);
+      expect(mockCreateCompletion).toHaveBeenCalledWith([]);
     });
 
     it("should return 400 when Body is missing", async () => {
@@ -210,7 +202,7 @@ describe("API Routes", () => {
       });
 
       expect(response.status).toBe(400);
-      expect(mockInsertMessage).not.toHaveBeenCalled();
+      expect(mockCreate).not.toHaveBeenCalled();
     });
 
     it("should return 400 when From is missing", async () => {
@@ -224,7 +216,7 @@ describe("API Routes", () => {
       });
 
       expect(response.status).toBe(400);
-      expect(mockInsertMessage).not.toHaveBeenCalled();
+      expect(mockCreate).not.toHaveBeenCalled();
     });
 
     it("should return 400 when To is missing", async () => {
@@ -238,13 +230,13 @@ describe("API Routes", () => {
       });
 
       expect(response.status).toBe(400);
-      expect(mockInsertMessage).not.toHaveBeenCalled();
+      expect(mockCreate).not.toHaveBeenCalled();
     });
 
     it("should handle special characters in SMS body", async () => {
       const specialBody = "Hello! 👋 @user #hashtag & <test>";
 
-      mockInsertMessage.mockResolvedValueOnce({
+      mockCreate.mockResolvedValueOnce({
         id: 1,
         receiver: "+15559876543",
         sender: "+15551234567",
@@ -263,7 +255,7 @@ describe("API Routes", () => {
       });
 
       expect(response.status).toBe(201);
-      expect(mockInsertMessage).toHaveBeenCalledWith({
+      expect(mockCreate).toHaveBeenCalledWith({
         body: specialBody,
         sender: "+15551234567",
         receiver: "+15559876543",
@@ -290,7 +282,7 @@ describe("API Routes", () => {
         },
       ];
 
-      mockGetAllMessages.mockResolvedValueOnce(mockMessages);
+      mockFindMany.mockResolvedValueOnce(mockMessages);
 
       const response = await fetch(`${baseUrl}/messages`);
       const data = (await response.json()) as Message[];
@@ -300,11 +292,11 @@ describe("API Routes", () => {
         "application/json",
       );
       expect(data).toHaveLength(2);
-      expect(mockGetAllMessages).toHaveBeenCalled();
+      expect(mockFindMany).toHaveBeenCalled();
     });
 
     it("should return empty array when no messages", async () => {
-      mockGetAllMessages.mockResolvedValueOnce([]);
+      mockFindMany.mockResolvedValueOnce([]);
 
       const response = await fetch(`${baseUrl}/messages`);
       const data = (await response.json()) as Message[];
