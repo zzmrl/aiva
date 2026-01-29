@@ -14,31 +14,21 @@ services:
     environment:
       PORT: ${API_PORT:-3000}
       NODE_ENV: ${NODE_ENV:-development}
-      DATABASE_PASSWORD_FILE: /run/secrets/postgres_password
-      DATABASE_USER_FILE: /run/secrets/postgres_user
-      DATABASE_NAME_FILE: /run/secrets/postgres_db
-      DATABASE_HOST: database
-      DATABASE_PORT: 5432
-      VENICE_API_KEY_FILE: /run/secrets/venice_api_key
+      DATABASE_URL: "postgres://$DATABASE_USER:$DATABASE_PASSWORD@$DATABASE_HOST:$DATABASE_PORT/$DATABASE_NAME"
+      VENICE_API_KEY: ${VENICE_API_KEY:?Unique venice API key found in settings}
+      TELNYX_APP_ID: ${TELNYX_APP_ID:?Telnyx app ID}
+      TELNYX_API_KEY: ${TELNYX_API_KEY:?Unique Telnyx API key}
+      TELNYX_PUBLIC_KEY: ${TELNYX_PUBLIC_KEY:?Telnyx public key for validation}
     depends_on:
       database:
         condition: service_healthy
-    secrets:
-      - postgres_password
-      - postgres_user
-      - postgres_db
-      - venice_api_key
 
   database:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-      POSTGRES_USER_FILE: /run/secrets/postgres_user
-    secrets:
-      - postgres_password
-      - postgres_user
-      - postgres_db
+      POSTGRES_USER: ${DATABASE_USER:?A username for the account, also used for database name}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?A strong password for the account}
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -62,18 +52,6 @@ services:
       - "443:443"
     volumes:
       - nginx_logs:/var/log/nginx
-
-secrets:
-  postgres_password:
-    file: ./secrets/postgres_password
-  postgres_user:
-    file: ./secrets/postgres_user
-  postgres_db:
-    file: ./secrets/postgres_user
-  venice_api_key:
-    file: ./secrets/venice_api_key
-  database_url:
-    file: ./secrets/database_url
 
 volumes:
   postgres_data:

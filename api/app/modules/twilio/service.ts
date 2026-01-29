@@ -1,4 +1,4 @@
-import { createCompletion } from "../../llm/completions";
+import { createCompletion } from "../llm/service";
 import * as messageService from "../message/service";
 
 export async function handleIncomingSms(

@@ -1,6 +1,10 @@
 import Telnyx from "telnyx";
+import { config } from "aiva-api/app";
 
-const telnyx = new Telnyx();
+const telnyx = new Telnyx({
+  apiKey: config.TELNYX_API_KEY,
+  publicKey: config.TELNYX_PUBLIC_KEY,
+});
 
 export async function answerCall(callControlId: string): Promise<void> {
   await telnyx.calls.actions.answer(callControlId, {
@@ -14,17 +18,15 @@ export async function answerCall(callControlId: string): Promise<void> {
 
 export async function speak(
   callControlId: string,
-  content: string,
+  payload: string,
 ): Promise<void> {
   await telnyx.calls.actions.speak(callControlId, {
-    payload: content,
+    payload,
     voice: "Telnyx.NaturalHD.Estelle",
   });
 }
 
-export async function startTranscription(
-  callControlId: string,
-): Promise<void> {
+export async function startTranscription(callControlId: string): Promise<void> {
   await telnyx.calls.actions.startTranscription(callControlId, {
     transcription_engine: "Telnyx",
     transcription_tracks: "inbound",

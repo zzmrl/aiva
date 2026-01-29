@@ -5,9 +5,14 @@
   "type": "module",
   "description": "Automate.It Virtual Assistant API",
   "main": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./app": "./app/index.ts",
+    "./server": "./app/server.ts"
+  },
   "scripts": {
     "build": "tsc",
-    "start": "bun run index.ts",
+    "start": "bun --sql-preconnect index.ts",
     "debug": "DEBUG=api bun dev",
     "dev": "bun --watch run index.ts",
     "test": "VENICE_API_KEY=test-key bun test",

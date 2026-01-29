@@ -3,8 +3,8 @@ import {
   createCompletion,
   streamCompletion,
   type CompletionMessage,
-} from "../../llm/completions";
-import * as messageService from "../message/service";
+} from "../llm/service";
+import { service as messageService } from "../message";
 import * as client from "./client";
 
 const conversations = new Map<string, CompletionMessage[]>();
@@ -20,7 +20,9 @@ export function clearConversation(callControlId: string): void {
 type TranscriptionEvent = Telnyx.TranscriptionWebhookEvent;
 type TranscriptionPayload = NonNullable<TranscriptionEvent["data"]>["payload"];
 
-export async function handleCallInitiated(callControlId: string): Promise<void> {
+export async function handleCallInitiated(
+  callControlId: string,
+): Promise<void> {
   await client.answerCall(callControlId);
 }
 

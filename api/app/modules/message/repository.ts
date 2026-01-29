@@ -1,4 +1,4 @@
-import { sql } from "../../db";
+import { sql } from "../../shared/database";
 import type { Message } from "./model";
 
 export type CreateMessageInput = Pick<Message, "receiver" | "sender" | "body">;
@@ -82,13 +82,4 @@ export async function findConversation(
     ${ageFilter}
     ORDER BY created ASC
   `;
-}
-
-/**
- * Get messages for a specific phone number
- * @param phone - Phone number to filter by (as sender or receiver)
- * @returns Messages involving this phone number
- */
-export async function getMessagesByPhone(phone: string): Promise<Message[]> {
-  return findMany({ phone });
 }

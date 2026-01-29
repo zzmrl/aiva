@@ -1,10 +1,8 @@
 import OpenAI from "openai";
-import { fileEnv } from "../utils";
-
-const apiKey = await fileEnv("VENICE_API_KEY");
+import { config } from "aiva-api/app";
 
 const client = new OpenAI({
-  apiKey,
+  apiKey: config.VENICE_API_KEY,
   baseURL: "https://api.venice.ai/api/v1",
 });
 

@@ -1,2 +1,3 @@
 export * from "./factory";
-export * from "./modules/message";
+export * as messages from "./modules/message";
+export { default as config } from "./config";

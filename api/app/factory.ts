@@ -11,22 +11,22 @@ import { router as messageRouter } from "./modules/message";
 import { router as twilioRouter } from "./modules/twilio";
 import { router as telnyxRouter } from "./modules/telnyx";
 
+const logger = () =>
+  pino(
+    process.stdout.isTTY
+      ? {
+          transport: {
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+            },
+          },
+        }
+      : {},
+  );
+
 export function createApp() {
   const app = express();
-
-  const logger = () =>
-    pino(
-      process.stdout.isTTY
-        ? {
-            transport: {
-              target: "pino-pretty",
-              options: {
-                colorize: true,
-              },
-            },
-          }
-        : {},
-    );
 
   app.use(
     helmet(),
@@ -42,7 +42,7 @@ export function createApp() {
 
   app.use("/messages", messageRouter);
   app.use("/twilio", twilioRouter);
-  app.use("/telnyx", telnyxRouter);
+  app.use("/webhooks", telnyxRouter);
 
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     res.log.error(err.stack);
@@ -58,7 +58,6 @@ export function createApp() {
       error: "Something went wrong!",
     });
   });
-
   app.use((_req, res) => {
     res.status(404).json({ error: "Resource not found" });
   });

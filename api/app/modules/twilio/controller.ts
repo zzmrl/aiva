@@ -24,13 +24,12 @@ export const transcription: RequestHandler = async (req, res) => {
 };
 
 export const sms: RequestHandler = async (req, res) => {
-  const llmResponse = await service.handleIncomingSms(
+  const reply = await service.handleIncomingSms(
     req.body.To,
     req.body.From,
     req.body.Body,
   );
-
   const twiml = new twilio.twiml.MessagingResponse();
-  twiml.message(llmResponse);
+  twiml.message(reply);
   res.status(201).type("text/xml").send(twiml.toString());
 };
