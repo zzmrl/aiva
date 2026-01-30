@@ -30,9 +30,39 @@ mock.module("../app/db", () => ({
   sql: mock(() => Promise.resolve([])),
 }));
 
-mock.module("../app/llm/completions", () => ({
+mock.module("../app/config", () => ({
+  default: {
+    NODE_ENV: "test",
+    PORT: 3000,
+    VENICE_API_KEY: "test-key",
+    TELNYX_APP_ID: "test-app-id",
+    TELNYX_API_KEY: "test-api-key",
+    TELNYX_PUBLIC_KEY: "test-public-key",
+    DATABASE_HOST: "localhost",
+    DATABASE_PORT: 5432,
+    DATABASE_USER: "test",
+    DATABASE_PASSWORD: "test",
+    DATABASE_NAME: "test",
+  },
+}));
+
+mock.module("../app/modules/llm/client", () => ({
+  default: {},
+}));
+
+mock.module("../app/modules/llm/service", () => ({
   createCompletion: mockCreateCompletion,
   streamCompletion: mock(function* () {}),
+}));
+
+const mockAnswerCall = mock(() => Promise.resolve());
+const mockStartTranscription = mock(() => Promise.resolve());
+const mockSpeak = mock(() => Promise.resolve());
+
+mock.module("../app/modules/telnyx/client", () => ({
+  answerCall: mockAnswerCall,
+  startTranscription: mockStartTranscription,
+  speak: mockSpeak,
 }));
 
 const { createApp } = await import("../app");
@@ -53,6 +83,9 @@ describe("API Routes", () => {
     mockFindMany.mockClear();
     mockFindConversation.mockClear();
     mockCreateCompletion.mockClear();
+    mockAnswerCall.mockClear();
+    mockStartTranscription.mockClear();
+    mockSpeak.mockClear();
   });
 
   describe("GET /health", () => {
@@ -63,9 +96,9 @@ describe("API Routes", () => {
     });
   });
 
-  describe("POST /voice", () => {
+  describe("POST /twilio/voice", () => {
     it("should return TwiML voice response", async () => {
-      const response = await fetch(`${baseUrl}/voice`, {
+      const response = await fetch(`${baseUrl}/twilio/voice`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -84,7 +117,7 @@ describe("API Routes", () => {
     });
   });
 
-  describe("POST /voiceTranscribe", () => {
+  describe("POST /twilio/transcription", () => {
     it("should save transcription and return 201", async () => {
       mockCreate.mockResolvedValueOnce({
         id: 1,
@@ -94,7 +127,7 @@ describe("API Routes", () => {
         created: new Date(),
       });
 
-      const response = await fetch(`${baseUrl}/voiceTranscribe`, {
+      const response = await fetch(`${baseUrl}/twilio/transcription`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -113,7 +146,7 @@ describe("API Routes", () => {
     });
 
     it("should return 400 when TranscriptionText is missing", async () => {
-      const response = await fetch(`${baseUrl}/voiceTranscribe`, {
+      const response = await fetch(`${baseUrl}/twilio/transcription`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -126,7 +159,7 @@ describe("API Routes", () => {
     });
 
     it("should return 400 when From is missing", async () => {
-      const response = await fetch(`${baseUrl}/voiceTranscribe`, {
+      const response = await fetch(`${baseUrl}/twilio/transcription`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -139,7 +172,7 @@ describe("API Routes", () => {
     });
 
     it("should return 400 when body is empty", async () => {
-      const response = await fetch(`${baseUrl}/voiceTranscribe`, {
+      const response = await fetch(`${baseUrl}/twilio/transcription`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: "",
@@ -149,7 +182,7 @@ describe("API Routes", () => {
     });
   });
 
-  describe("POST /sms", () => {
+  describe("POST /twilio/sms", () => {
     it("should save SMS and return TwiML response with LLM completion", async () => {
       mockCreate.mockResolvedValueOnce({
         id: 1,
@@ -159,7 +192,7 @@ describe("API Routes", () => {
         created: new Date(),
       });
 
-      const response = await fetch(`${baseUrl}/sms`, {
+      const response = await fetch(`${baseUrl}/twilio/sms`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -192,7 +225,7 @@ describe("API Routes", () => {
     });
 
     it("should return 400 when Body is missing", async () => {
-      const response = await fetch(`${baseUrl}/sms`, {
+      const response = await fetch(`${baseUrl}/twilio/sms`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -206,7 +239,7 @@ describe("API Routes", () => {
     });
 
     it("should return 400 when From is missing", async () => {
-      const response = await fetch(`${baseUrl}/sms`, {
+      const response = await fetch(`${baseUrl}/twilio/sms`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -220,7 +253,7 @@ describe("API Routes", () => {
     });
 
     it("should return 400 when To is missing", async () => {
-      const response = await fetch(`${baseUrl}/sms`, {
+      const response = await fetch(`${baseUrl}/twilio/sms`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -244,7 +277,7 @@ describe("API Routes", () => {
         created: new Date(),
       });
 
-      const response = await fetch(`${baseUrl}/sms`, {
+      const response = await fetch(`${baseUrl}/twilio/sms`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -259,6 +292,208 @@ describe("API Routes", () => {
         body: specialBody,
         sender: "+15551234567",
         receiver: "+15559876543",
+      });
+    });
+  });
+
+  describe("POST /webhooks/voice (Telnyx)", () => {
+    it("should return 200 for call.initiated event", async () => {
+      const response = await fetch(`${baseUrl}/webhooks/voice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            event_type: "call.initiated",
+            payload: {
+              call_control_id: "test-call-control-id",
+            },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(mockAnswerCall).toHaveBeenCalledWith("test-call-control-id");
+    });
+
+    it("should return 400 when data is missing", async () => {
+      const response = await fetch(`${baseUrl}/webhooks/voice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      expect(response.status).toBe(400);
+      expect(mockAnswerCall).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when call_control_id is missing", async () => {
+      const response = await fetch(`${baseUrl}/webhooks/voice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            event_type: "call.initiated",
+            payload: {},
+          },
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(mockAnswerCall).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when event_type is missing", async () => {
+      const response = await fetch(`${baseUrl}/webhooks/voice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            payload: {
+              call_control_id: "test-call-control-id",
+            },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(mockAnswerCall).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("POST /webhooks/messaging (Telnyx)", () => {
+    it("should return 200 for message.received event", async () => {
+      mockCreate.mockResolvedValueOnce({
+        id: 1,
+        receiver: "+15559876543",
+        sender: "+15551234567",
+        body: "Hello from Telnyx",
+        created: new Date(),
+      });
+
+      const response = await fetch(`${baseUrl}/webhooks/messaging`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            event_type: "message.received",
+            payload: {
+              to: [{ phone_number: "+15559876543" }],
+              from: { phone_number: "+15551234567" },
+              text: "Hello from Telnyx",
+            },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(mockCreate).toHaveBeenCalledWith({
+        body: "Hello from Telnyx",
+        receiver: "+15559876543",
+        sender: "+15551234567",
+      });
+    });
+
+    it("should return 400 when data is missing", async () => {
+      const response = await fetch(`${baseUrl}/webhooks/messaging`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      expect(response.status).toBe(400);
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when text is missing", async () => {
+      const response = await fetch(`${baseUrl}/webhooks/messaging`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            event_type: "message.received",
+            payload: {
+              to: [{ phone_number: "+15559876543" }],
+              from: { phone_number: "+15551234567" },
+            },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when from.phone_number is missing", async () => {
+      const response = await fetch(`${baseUrl}/webhooks/messaging`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            event_type: "message.received",
+            payload: {
+              to: [{ phone_number: "+15559876543" }],
+              from: {},
+              text: "Hello",
+            },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when to array is empty", async () => {
+      const response = await fetch(`${baseUrl}/webhooks/messaging`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            event_type: "message.received",
+            payload: {
+              to: [],
+              from: { phone_number: "+15551234567" },
+              text: "Hello",
+            },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("should handle special characters in message text", async () => {
+      const specialText = "Hello! 👋 @user #hashtag & <test>";
+
+      mockCreate.mockResolvedValueOnce({
+        id: 1,
+        receiver: "+15559876543",
+        sender: "+15551234567",
+        body: specialText,
+        created: new Date(),
+      });
+
+      const response = await fetch(`${baseUrl}/webhooks/messaging`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            event_type: "message.received",
+            payload: {
+              to: [{ phone_number: "+15559876543" }],
+              from: { phone_number: "+15551234567" },
+              text: specialText,
+            },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(mockCreate).toHaveBeenCalledWith({
+        body: specialText,
+        receiver: "+15559876543",
+        sender: "+15551234567",
       });
     });
   });

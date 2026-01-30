@@ -14,14 +14,7 @@ export const voice: RequestHandler = async (req, res) => {
   res.sendStatus(200);
 
   const { data }: CallWebhookEvent = req.body;
-  if (!data?.payload) {
-    throw new Error("Missing expected payload");
-  }
-
   const callControlId = data.payload.call_control_id;
-  if (!callControlId) {
-    throw new Error("Missing expected call control ID");
-  }
 
   switch (data.event_type) {
     case "call.initiated":
@@ -43,9 +36,6 @@ export const messaging: RequestHandler = async (req, res) => {
   res.sendStatus(200);
 
   const { data }: MessageWebhookEvent = req.body;
-  if (!data?.payload) {
-    throw new Error("Missing expected payload");
-  }
 
   if (data.event_type === "message.received") {
     await service.handleInboundMessage(data.payload);

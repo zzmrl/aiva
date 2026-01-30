@@ -22,15 +22,27 @@ async function resolveSecrets(
 
 const environment = await resolveSecrets(process.env);
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "production", "test"]),
-  PORT: z.coerce.number().default(3000),
-  DATABASE_URL: z.url(),
-  VENICE_API_KEY: z.string().min(1),
-  TELNYX_APP_ID: z.string().min(1),
-  TELNYX_API_KEY: z.string().min(1),
-  TELNYX_PUBLIC_KEY: z.string().min(1),
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "production", "test"]),
+    PORT: z.coerce.number().default(3000),
+    VENICE_API_KEY: z.string().min(1),
+    TELNYX_APP_ID: z.string().min(1),
+    TELNYX_API_KEY: z.string().min(1),
+    TELNYX_PUBLIC_KEY: z.string().min(1),
+  })
+  .and(
+    z.union([
+      z.object({ DATABASE_URL: z.url() }),
+      z.object({
+        DATABASE_PASSWORD: z.string().min(1),
+        DATABASE_USER: z.string().min(1),
+        DATABASE_NAME: z.string().min(1),
+        DATABASE_HOST: z.string().min(1).default("localhost"),
+        DATABASE_PORT: z.coerce.number().default(5432),
+      }),
+    ]),
+  );
 
 const parsed = envSchema.safeParse(environment);
 
