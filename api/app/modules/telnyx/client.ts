@@ -36,7 +36,7 @@ export async function startTranscription(callControlId: string): Promise<void> {
 export async function sendSms(
   to: string,
   from: string,
-  body: string,
+  text: string,
 ): Promise<void> {
-  await telnyx.messages.send({ to, from, text: body });
+  await telnyx.messages.send({ to, from, text });
 }

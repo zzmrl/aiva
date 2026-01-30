@@ -17,13 +17,57 @@ export const messagingSchema = { body: messagingBodySchema };
 export type MessagingWebhookBody = z.infer<typeof messagingBodySchema>;
 export type MessagingPayload = MessagingWebhookBody["data"]["payload"];
 
-const voiceBodySchema = z.object({
-  data: z.object({
-    event_type: z.string().min(1),
-    payload: z.object({
-      call_control_id: z.string().min(1),
+const callInitiatedDataSchema = z.object({
+  event_type: z.literal("call.initiated"),
+  payload: z.object({
+    call_control_id: z.string().min(1),
+  }),
+});
+
+export type CallInitiatedWebhookData = z.infer<typeof callInitiatedDataSchema>;
+export type CallInitiatedPayload = CallInitiatedWebhookData["payload"];
+
+const callAnsweredDataSchema = z.object({
+  event_type: z.literal("call.answered"),
+  payload: z.object({
+    call_control_id: z.string().min(1),
+  }),
+});
+
+export type CallAnsweredWebhookData = z.infer<typeof callAnsweredDataSchema>;
+export type CallAnsweredPayload = CallAnsweredWebhookData["payload"];
+
+const callHangupDataSchema = z.object({
+  event_type: z.literal("call.hangup"),
+  payload: z.object({
+    call_control_id: z.string().min(1),
+  }),
+});
+
+export type CallHangupWebhookData = z.infer<typeof callHangupDataSchema>;
+export type CallHangupPayload = CallHangupWebhookData["payload"];
+
+const transcriptionDataSchema = z.object({
+  event_type: z.literal("call.transcription"),
+  payload: z.object({
+    call_control_id: z.string().min(1),
+    transcription_data: z.object({
+      transcript: z.string().default(""),
+      is_final: z.boolean().default(false),
     }),
   }),
+});
+
+export type TranscriptionWebhookData = z.infer<typeof transcriptionDataSchema>;
+export type TranscriptionPayload = TranscriptionWebhookData["payload"];
+
+const voiceBodySchema = z.object({
+  data: z.discriminatedUnion("event_type", [
+    callInitiatedDataSchema,
+    callAnsweredDataSchema,
+    callHangupDataSchema,
+    transcriptionDataSchema,
+  ]),
 });
 
 export const voiceSchema = { body: voiceBodySchema };

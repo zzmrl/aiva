@@ -1,8 +1,13 @@
-import type Telnyx from "telnyx";
 import { streamCompletion, type CompletionMessage } from "../llm/service";
 import { service as messageService } from "../message";
 import * as client from "./client";
-import type { MessagingPayload } from "./validation";
+import type {
+  CallAnsweredPayload,
+  CallHangupPayload,
+  CallInitiatedPayload,
+  MessagingPayload,
+  TranscriptionPayload,
+} from "./validation";
 
 const conversations = new Map<string, CompletionMessage[]>();
 
@@ -14,34 +19,36 @@ export function clearConversation(callControlId: string): void {
   conversations.delete(callControlId);
 }
 
-type TranscriptionEvent = Telnyx.TranscriptionWebhookEvent;
-type TranscriptionPayload = NonNullable<TranscriptionEvent["data"]>["payload"];
-
 export async function handleCallInitiated(
-  callControlId: string,
+  payload: CallInitiatedPayload,
 ): Promise<void> {
-  await client.answerCall(callControlId);
+  await client.answerCall(payload.call_control_id);
 }
 
-export async function handleCallAnswered(callControlId: string): Promise<void> {
-  conversations.set(callControlId, []);
-  await client.startTranscription(callControlId);
+export async function handleCallAnswered(
+  payload: CallAnsweredPayload,
+): Promise<void> {
+  conversations.set(payload.call_control_id, []);
+  await client.startTranscription(payload.call_control_id);
   await client.speak(
-    callControlId,
+    payload.call_control_id,
     "Hello! I am Automate It Virtual Assistant. How can I help you today?",
   );
 }
 
 export async function handleTranscription(
   payload: TranscriptionPayload,
-  callControlId: string,
 ): Promise<void> {
-  const { transcript = "", is_final } = payload?.transcription_data ?? {};
+  const {
+    call_control_id,
+    transcription_data: { transcript, is_final },
+  } = payload;
+
   if (!is_final) {
     return;
   }
 
-  const conversation = conversations.get(callControlId) ?? [];
+  const conversation = conversations.get(call_control_id) ?? [];
   conversation.push({
     role: "user",
     content: transcript,
@@ -53,7 +60,7 @@ export async function handleTranscription(
     fullResponse += chunk;
     if (firstChunk && fullResponse.includes(".")) {
       firstChunk = false;
-      await client.speak(callControlId, fullResponse);
+      await client.speak(call_control_id, fullResponse);
     }
   }
 
@@ -63,8 +70,8 @@ export async function handleTranscription(
   });
 }
 
-export function handleCallHangup(callControlId: string): void {
-  conversations.delete(callControlId);
+export function handleCallHangup(payload: CallHangupPayload): void {
+  conversations.delete(payload.call_control_id);
 }
 
 export async function handleInboundMessage(

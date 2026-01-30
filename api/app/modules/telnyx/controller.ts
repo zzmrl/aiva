@@ -1,34 +1,24 @@
 import type { RequestHandler } from "express";
-import type Telnyx from "telnyx";
 import * as service from "./service";
 import type { MessagingWebhookBody, VoiceWebhookBody } from "./validation";
-
-type TranscriptionPayload = NonNullable<
-  Telnyx.TranscriptionWebhookEvent["data"]
->["payload"];
 
 export const voice: RequestHandler = async (req, res) => {
   res.sendStatus(200);
 
   const { data } = req.body as VoiceWebhookBody;
-  const callControlId = data.payload.call_control_id;
 
   switch (data.event_type) {
     case "call.initiated":
-      await service.handleCallInitiated(callControlId);
+      await service.handleCallInitiated(data.payload);
       break;
     case "call.answered":
-      await service.handleCallAnswered(callControlId);
+      await service.handleCallAnswered(data.payload);
       break;
     case "call.transcription":
-      // Transcription payload has additional fields beyond the validated schema
-      await service.handleTranscription(
-        req.body.data.payload as TranscriptionPayload,
-        callControlId,
-      );
+      await service.handleTranscription(data.payload);
       break;
     case "call.hangup":
-      service.handleCallHangup(callControlId);
+      service.handleCallHangup(data.payload);
       break;
   }
 };
