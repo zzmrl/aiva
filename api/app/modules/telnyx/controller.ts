@@ -13,10 +13,11 @@ type MessageWebhookEvent = Telnyx.InboundMessageWebhookEvent;
 export const voice: RequestHandler = async (req, res) => {
   res.sendStatus(200);
 
+  // Validation middleware ensures data and payload are present
   const { data }: CallWebhookEvent = req.body;
-  const callControlId = data.payload.call_control_id;
+  const callControlId = data!.payload!.call_control_id!;
 
-  switch (data.event_type) {
+  switch (data!.event_type) {
     case "call.initiated":
       await service.handleCallInitiated(callControlId);
       break;
@@ -24,7 +25,7 @@ export const voice: RequestHandler = async (req, res) => {
       await service.handleCallAnswered(callControlId);
       break;
     case "call.transcription":
-      await service.handleTranscription(data.payload, callControlId);
+      await service.handleTranscription(data!.payload!, callControlId);
       break;
     case "call.hangup":
       service.handleCallHangup(callControlId);
@@ -35,9 +36,10 @@ export const voice: RequestHandler = async (req, res) => {
 export const messaging: RequestHandler = async (req, res) => {
   res.sendStatus(200);
 
+  // Validation middleware ensures data and payload are present
   const { data }: MessageWebhookEvent = req.body;
 
-  if (data.event_type === "message.received") {
-    await service.handleInboundMessage(data.payload);
+  if (data!.event_type === "message.received") {
+    await service.handleInboundMessage(data!.payload!);
   }
 };

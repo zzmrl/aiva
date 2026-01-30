@@ -1,4 +1,3 @@
-import { createCompletion } from "../llm/service";
 import * as messageService from "../message/service";
 
 export async function handleIncomingSms(
@@ -6,32 +5,7 @@ export async function handleIncomingSms(
   from: string,
   body: string,
 ): Promise<string> {
-  const message = await messageService.create({
-    body,
-    receiver: to,
-    sender: from,
-  });
-
-  const conversationHistory = await messageService.getConversation(
-    message.sender,
-    message.receiver,
-    30,
-  );
-
-  const llmResponse = await createCompletion(
-    conversationHistory.map((msg) => ({
-      role: msg.sender === message.receiver ? "assistant" : "user",
-      content: msg.body,
-    })),
-  );
-
-  await messageService.create({
-    body: llmResponse,
-    receiver: message.sender,
-    sender: message.receiver,
-  });
-
-  return llmResponse;
+  return messageService.handleIncomingSms(to, from, body);
 }
 
 export async function handleTranscription(

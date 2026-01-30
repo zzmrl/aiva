@@ -1,9 +1,5 @@
 import type Telnyx from "telnyx";
-import {
-  createCompletion,
-  streamCompletion,
-  type CompletionMessage,
-} from "../llm/service";
+import { streamCompletion, type CompletionMessage } from "../llm/service";
 import { service as messageService } from "../message";
 import * as client from "./client";
 
@@ -78,34 +74,10 @@ type InboundMessagePayload = NonNullable<
 export async function handleInboundMessage(
   payload: InboundMessagePayload,
 ): Promise<void> {
-  const { to, from, text } = payload;
-
-  if (!to?.[0]?.phone_number || !from?.phone_number || !text) {
-    throw new Error("Missing required fields");
-  }
-
-  const message = await messageService.create({
-    body: text,
-    receiver: to[0].phone_number,
-    sender: from.phone_number,
-  });
-
-  const conversationHistory = await messageService.getConversation(
-    message.sender,
-    message.receiver,
-    30,
+  // Validation middleware ensures these fields are present
+  await messageService.handleIncomingSms(
+    payload.to![0]!.phone_number!,
+    payload.from!.phone_number!,
+    payload.text!,
   );
-
-  const llmResponse = await createCompletion(
-    conversationHistory.map((msg) => ({
-      role: msg.sender === message.receiver ? "assistant" : "user",
-      content: msg.body,
-    })),
-  );
-
-  await messageService.create({
-    body: llmResponse,
-    receiver: message.sender,
-    sender: message.receiver,
-  });
 }
