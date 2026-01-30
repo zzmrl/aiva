@@ -1,6 +1,6 @@
-import { streamCompletion, type CompletionMessage } from "../llm/service";
+import { streamCompletion, type CompletionMessage } from "../llm/repository";
 import { service as messageService } from "../message";
-import * as client from "./client";
+import * as repository from "./repository";
 import type {
   CallAnsweredPayload,
   CallHangupPayload,
@@ -22,15 +22,15 @@ export function clearConversation(callControlId: string): void {
 export async function handleCallInitiated(
   payload: CallInitiatedPayload,
 ): Promise<void> {
-  await client.answerCall(payload.call_control_id);
+  await repository.answerCall(payload.call_control_id);
 }
 
 export async function handleCallAnswered(
   payload: CallAnsweredPayload,
 ): Promise<void> {
   conversations.set(payload.call_control_id, []);
-  await client.startTranscription(payload.call_control_id);
-  await client.speak(
+  await repository.startTranscription(payload.call_control_id);
+  await repository.speak(
     payload.call_control_id,
     "Hello! I am Automate It Virtual Assistant. How can I help you today?",
   );
@@ -60,7 +60,7 @@ export async function handleTranscription(
     fullResponse += chunk;
     if (firstChunk && fullResponse.includes(".")) {
       firstChunk = false;
-      await client.speak(call_control_id, fullResponse);
+      await repository.speak(call_control_id, fullResponse);
     }
   }
 

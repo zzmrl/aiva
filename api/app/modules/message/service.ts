@@ -1,5 +1,5 @@
 import { NotFoundError } from "../../shared/errors";
-import { createCompletion } from "../llm/service";
+import { createCompletion } from "../llm/repository";
 import { repository, type Message } from ".";
 
 export async function create(
