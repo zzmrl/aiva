@@ -65,7 +65,12 @@ Or
 - `DATABASE_HOST`: Database host (default: localhost)
 - `DATABASE_PORT`: Database port (default: 5432)
 
-This application checks each `_FILE` suffixed variable, reads the file if it exists, and falls back to the regular environment variable otherwise. For example, if `DATABASE_PASSWORD_FILE` is set, it will read the password from the file specified by the variable.
+### `_FILE` suffixed env variables
+
+This application checks each `_FILE` suffixed variable, reads the file if it exists, 
+and falls back to the regular environment variable otherwise. For example, if 
+`DATABASE_PASSWORD_FILE` is set, it will read the password from the file specified 
+by the variable.
 
 ## Module Structure
 
