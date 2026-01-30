@@ -2,6 +2,7 @@ import type Telnyx from "telnyx";
 import { streamCompletion, type CompletionMessage } from "../llm/service";
 import { service as messageService } from "../message";
 import * as client from "./client";
+import type { MessagingPayload } from "./validation";
 
 const conversations = new Map<string, CompletionMessage[]>();
 
@@ -66,18 +67,12 @@ export function handleCallHangup(callControlId: string): void {
   conversations.delete(callControlId);
 }
 
-type InboundMessageEvent = Telnyx.InboundMessageWebhookEvent;
-type InboundMessagePayload = NonNullable<
-  NonNullable<InboundMessageEvent["data"]>["payload"]
->;
-
 export async function handleInboundMessage(
-  payload: InboundMessagePayload,
+  payload: MessagingPayload,
 ): Promise<void> {
-  // Validation middleware ensures these fields are present
   await messageService.handleIncomingSms(
-    payload.to![0]!.phone_number!,
-    payload.from!.phone_number!,
-    payload.text!,
+    payload.to[0].phone_number,
+    payload.from.phone_number,
+    payload.text,
   );
 }
