@@ -5,7 +5,7 @@ export async function handleIncomingSms(
   from: string,
   body: string,
 ): Promise<string> {
-  return messageService.handleIncomingSms(to, from, body);
+  return messageService.handleInboundMessage(to, from, body);
 }
 
 export async function handleTranscription(

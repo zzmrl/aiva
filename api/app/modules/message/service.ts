@@ -32,7 +32,7 @@ export async function getConversation(
   return repository.findConversation(phone1, phone2, minutesAgo);
 }
 
-export async function handleIncomingSms(
+export async function handleInboundMessage(
   to: string,
   from: string,
   body: string,

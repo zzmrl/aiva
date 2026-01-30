@@ -77,9 +77,12 @@ export function handleCallHangup(payload: CallHangupPayload): void {
 export async function handleInboundMessage(
   payload: MessagingPayload,
 ): Promise<void> {
-  await messageService.handleIncomingSms(
+  const [to, from, text] = [
     payload.to[0].phone_number,
     payload.from.phone_number,
     payload.text,
-  );
+  ];
+  const response = await messageService.handleInboundMessage(to, from, text);
+
+  repository.sendSms(from, to, response);
 }
