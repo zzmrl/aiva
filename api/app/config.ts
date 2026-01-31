@@ -30,6 +30,7 @@ const envSchema = z
     TELNYX_APP_ID: z.string().min(1),
     TELNYX_API_KEY: z.string().min(1),
     TELNYX_PUBLIC_KEY: z.string().min(1),
+    REDIS_URL: z.url().default("redis://localhost:6379"),
   })
   .and(
     z.union([

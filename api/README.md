@@ -4,6 +4,30 @@ Express TypeScript API for the Automate.It Virtual Assistant.
 
 Used bun for development but will likely work with other runtimes and package managers
 
+## Directory Structure
+
+```
+api/
+├── app/                    # Application source code
+│   ├── modules/            # Feature modules with domain logic
+│   │   ├── llm/            # Venice AI integration (completions)
+│   │   ├── message/        # Message CRUD and conversation handling
+│   │   ├── telnyx/         # Telnyx webhook handlers (SMS/voice)
+│   │   └── twilio/         # Twilio webhook handlers (SMS/voice)
+│   ├── shared/             # Cross-cutting infrastructure
+│   │   ├── database/       # PostgreSQL client (Bun SQL)
+│   │   ├── errors/         # Error types and handling
+│   │   ├── middleware/     # Express middleware (validation)
+│   │   └── redis/          # Redis client (Bun Redis)
+│   ├── config.ts           # Environment validation (Zod)
+│   ├── factory.ts          # Express app factory
+│   ├── index.ts            # App exports
+│   └── server.ts           # Server bootstrap
+├── test/                   # Integration tests
+├── index.ts                # Entrypoint
+└── package.json
+```
+
 ## Development
 
 In order to receive webhook requests during development, 
@@ -49,9 +73,11 @@ bun lint
 
 - `PORT`: Server port (default: 3000)
 - `NODE_ENV`: Environment [development/production/test]
+- `VENICE_API_KEY`: Venice AI API key
 - `TELNYX_APP_ID`: Telnyx application ID
 - `TELNYX_API_KEY`: Telnyx API key
 - `TELNYX_PUBLIC_KEY`: Telnyx public key for validation
+- `REDIS_URL`: Redis connection URL (default: redis://localhost:6379)
 
 ### Either DB URL or Individual Settings
 

@@ -11,14 +11,6 @@ import type {
 
 const conversations = new Map<string, CompletionMessage[]>();
 
-export function getConversation(callControlId: string): CompletionMessage[] {
-  return conversations.get(callControlId) ?? [];
-}
-
-export function clearConversation(callControlId: string): void {
-  conversations.delete(callControlId);
-}
-
 export async function handleCallInitiated(
   payload: CallInitiatedPayload,
 ): Promise<void> {
