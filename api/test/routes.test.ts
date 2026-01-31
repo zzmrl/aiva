@@ -14,8 +14,8 @@ const mockCreate = mock(
 const mockFindMany = mock(() => Promise.resolve<Message[]>([]));
 const mockFindConversation = mock(() => Promise.resolve<Message[]>([]));
 
-const mockCreateCompletion = mock(
-  (_messages: unknown[]) => Promise.resolve("Mocked text response"),
+const mockCreateCompletion = mock((_messages: unknown[]) =>
+  Promise.resolve("Mocked text response"),
 );
 
 mock.module("../app/modules/message/repository", () => ({
@@ -31,7 +31,9 @@ mock.module("../app/db", () => ({
 }));
 
 const mockRedisStore = new Map<string, string>();
-const mockRedisGet = mock((key: string) => Promise.resolve(mockRedisStore.get(key) ?? null));
+const mockRedisGet = mock((key: string) =>
+  Promise.resolve(mockRedisStore.get(key) ?? null),
+);
 const mockRedisSet = mock((key: string, value: string) => {
   mockRedisStore.set(key, value);
   return Promise.resolve();
@@ -41,6 +43,19 @@ const mockRedisDel = mock((key: string) => {
   return Promise.resolve();
 });
 const mockRedisExpire = mock(() => Promise.resolve());
+const mockRedisSend = mock(
+  (cmd: string, args: [string, string, ...string[]]) => {
+    if (cmd === "SET" && args.includes("NX")) {
+      const key = args[0];
+      if (mockRedisStore.has(key)) {
+        return Promise.resolve(null);
+      }
+      mockRedisStore.set(key, args[1]);
+      return Promise.resolve("OK");
+    }
+    return Promise.resolve(null);
+  },
+);
 
 mock.module("../app/shared/redis", () => ({
   redis: {
@@ -48,6 +63,7 @@ mock.module("../app/shared/redis", () => ({
     set: mockRedisSet,
     del: mockRedisDel,
     expire: mockRedisExpire,
+    send: mockRedisSend,
   },
 }));
 
@@ -116,6 +132,7 @@ describe("API Routes", () => {
     mockRedisSet.mockClear();
     mockRedisDel.mockClear();
     mockRedisExpire.mockClear();
+    mockRedisSend.mockClear();
     mockRedisStore.clear();
   });
 
@@ -334,6 +351,7 @@ describe("API Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
+            id: "550e8400-e29b-41d4-a716-446655440000",
             event_type: "call.initiated",
             payload: {
               call_control_id: "test-call-control-id",
@@ -363,6 +381,7 @@ describe("API Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
+            id: "550e8400-e29b-41d4-a716-446655440001",
             event_type: "call.initiated",
             payload: {},
           },
@@ -379,6 +398,7 @@ describe("API Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
+            id: "550e8400-e29b-41d4-a716-446655440002",
             payload: {
               call_control_id: "test-call-control-id",
             },
@@ -406,6 +426,7 @@ describe("API Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
+            id: "660e8400-e29b-41d4-a716-446655440000",
             event_type: "message.received",
             payload: {
               to: [{ phone_number: "+15559876543" }],
@@ -441,6 +462,7 @@ describe("API Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
+            id: "660e8400-e29b-41d4-a716-446655440001",
             event_type: "message.received",
             payload: {
               to: [{ phone_number: "+15559876543" }],
@@ -460,6 +482,7 @@ describe("API Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
+            id: "660e8400-e29b-41d4-a716-446655440002",
             event_type: "message.received",
             payload: {
               to: [{ phone_number: "+15559876543" }],
@@ -480,6 +503,7 @@ describe("API Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
+            id: "660e8400-e29b-41d4-a716-446655440003",
             event_type: "message.received",
             payload: {
               to: [],
@@ -510,6 +534,7 @@ describe("API Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
+            id: "660e8400-e29b-41d4-a716-446655440004",
             event_type: "message.received",
             payload: {
               to: [{ phone_number: "+15559876543" }],

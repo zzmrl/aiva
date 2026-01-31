@@ -4,6 +4,7 @@ const phoneNumberSchema = z.object({ phone_number: z.string().min(1) });
 
 const messagingBodySchema = z.object({
   data: z.object({
+    id: z.string().uuid(),
     event_type: z.string().min(1),
     payload: z.object({
       to: z.tuple([phoneNumberSchema]).rest(phoneNumberSchema),
@@ -18,6 +19,7 @@ export type MessagingWebhookBody = z.infer<typeof messagingBodySchema>;
 export type MessagingPayload = MessagingWebhookBody["data"]["payload"];
 
 const callInitiatedDataSchema = z.object({
+  id: z.uuid(),
   event_type: z.literal("call.initiated"),
   payload: z.object({
     call_control_id: z.string().min(1),
@@ -28,6 +30,7 @@ export type CallInitiatedWebhookData = z.infer<typeof callInitiatedDataSchema>;
 export type CallInitiatedPayload = CallInitiatedWebhookData["payload"];
 
 const callAnsweredDataSchema = z.object({
+  id: z.uuid(),
   event_type: z.literal("call.answered"),
   payload: z.object({
     call_control_id: z.string().min(1),
@@ -38,6 +41,7 @@ export type CallAnsweredWebhookData = z.infer<typeof callAnsweredDataSchema>;
 export type CallAnsweredPayload = CallAnsweredWebhookData["payload"];
 
 const callHangupDataSchema = z.object({
+  id: z.uuid(),
   event_type: z.literal("call.hangup"),
   payload: z.object({
     call_control_id: z.string().min(1),
@@ -48,6 +52,7 @@ export type CallHangupWebhookData = z.infer<typeof callHangupDataSchema>;
 export type CallHangupPayload = CallHangupWebhookData["payload"];
 
 const transcriptionDataSchema = z.object({
+  id: z.uuid(),
   event_type: z.literal("call.transcription"),
   payload: z.object({
     call_control_id: z.string().min(1),
