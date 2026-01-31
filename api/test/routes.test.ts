@@ -30,6 +30,27 @@ mock.module("../app/db", () => ({
   sql: mock(() => Promise.resolve([])),
 }));
 
+const mockRedisStore = new Map<string, string>();
+const mockRedisGet = mock((key: string) => Promise.resolve(mockRedisStore.get(key) ?? null));
+const mockRedisSet = mock((key: string, value: string) => {
+  mockRedisStore.set(key, value);
+  return Promise.resolve();
+});
+const mockRedisDel = mock((key: string) => {
+  mockRedisStore.delete(key);
+  return Promise.resolve();
+});
+const mockRedisExpire = mock(() => Promise.resolve());
+
+mock.module("../app/shared/redis", () => ({
+  redis: {
+    get: mockRedisGet,
+    set: mockRedisSet,
+    del: mockRedisDel,
+    expire: mockRedisExpire,
+  },
+}));
+
 mock.module("../app/config", () => ({
   default: {
     NODE_ENV: "test",
@@ -50,9 +71,9 @@ mock.module("../app/modules/llm/client", () => ({
   default: {},
 }));
 
-mock.module("../app/modules/llm/service", () => ({
+mock.module("../app/modules/llm/repository", () => ({
   createCompletion: mockCreateCompletion,
-  streamCompletion: mock(function* () {}),
+  streamCompletion: mock(async function* () {}),
 }));
 
 const mockAnswerCall = mock(() => Promise.resolve());
@@ -60,9 +81,14 @@ const mockStartTranscription = mock(() => Promise.resolve());
 const mockSpeak = mock(() => Promise.resolve());
 
 mock.module("../app/modules/telnyx/client", () => ({
+  default: {},
+}));
+
+mock.module("../app/modules/telnyx/repository", () => ({
   answerCall: mockAnswerCall,
   startTranscription: mockStartTranscription,
   speak: mockSpeak,
+  sendSms: mock(() => Promise.resolve()),
 }));
 
 const { createApp } = await import("../app");
@@ -86,6 +112,11 @@ describe("API Routes", () => {
     mockAnswerCall.mockClear();
     mockStartTranscription.mockClear();
     mockSpeak.mockClear();
+    mockRedisGet.mockClear();
+    mockRedisSet.mockClear();
+    mockRedisDel.mockClear();
+    mockRedisExpire.mockClear();
+    mockRedisStore.clear();
   });
 
   describe("GET /health", () => {

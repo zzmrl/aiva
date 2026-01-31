@@ -1,5 +1,6 @@
-import { streamCompletion, type CompletionMessage } from "../llm/repository";
+import { streamCompletion } from "../llm/repository";
 import { service as messageService } from "../message";
+import * as conversations from "./conversations";
 import * as repository from "./repository";
 import type {
   CallAnsweredPayload,
@@ -8,8 +9,6 @@ import type {
   MessagingPayload,
   TranscriptionPayload,
 } from "./validation";
-
-const conversations = new Map<string, CompletionMessage[]>();
 
 export async function handleCallInitiated(
   payload: CallInitiatedPayload,
@@ -20,7 +19,7 @@ export async function handleCallInitiated(
 export async function handleCallAnswered(
   payload: CallAnsweredPayload,
 ): Promise<void> {
-  conversations.set(payload.call_control_id, []);
+  await conversations.set(payload.call_control_id, []);
   await repository.startTranscription(payload.call_control_id);
   await repository.speak(
     payload.call_control_id,
@@ -40,8 +39,7 @@ export async function handleTranscription(
     return;
   }
 
-  const conversation = conversations.get(call_control_id) ?? [];
-  conversation.push({
+  const conversation = await conversations.append(call_control_id, {
     role: "user",
     content: transcript,
   });
@@ -56,14 +54,16 @@ export async function handleTranscription(
     }
   }
 
-  conversation.push({
+  await conversations.append(call_control_id, {
     role: "assistant",
     content: fullResponse,
   });
 }
 
-export function handleCallHangup(payload: CallHangupPayload): void {
-  conversations.delete(payload.call_control_id);
+export async function handleCallHangup(
+  payload: CallHangupPayload,
+): Promise<void> {
+  await conversations.remove(payload.call_control_id);
 }
 
 export async function handleInboundMessage(
