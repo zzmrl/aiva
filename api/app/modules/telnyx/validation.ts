@@ -23,6 +23,8 @@ const callInitiatedDataSchema = z.object({
   event_type: z.literal("call.initiated"),
   payload: z.object({
     call_control_id: z.string().min(1),
+    from: z.string().min(1),
+    to: z.string().min(1),
   }),
 });
 

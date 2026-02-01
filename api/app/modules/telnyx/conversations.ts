@@ -8,32 +8,65 @@ import type { CompletionMessage } from "../llm/repository";
 const KEY_PREFIX = "conversation:";
 const TTL_SECONDS = 3600; // 1 hour
 
+export type CallMetadata = {
+  from: string;
+  to: string;
+};
+
+type StoredConversation = {
+  metadata: CallMetadata;
+  messages: CompletionMessage[];
+};
+
 function key(callControlId: string): string {
   return `${KEY_PREFIX}${callControlId}`;
 }
 
-export async function get(callControlId: string): Promise<CompletionMessage[]> {
+async function getStored(
+  callControlId: string,
+): Promise<StoredConversation | null> {
   const data = await redis.get(key(callControlId));
-  if (!data) return [];
-  return JSON.parse(data) as CompletionMessage[];
+  if (!data) return null;
+  return JSON.parse(data) as StoredConversation;
 }
 
-export async function set(
+async function setStored(
   callControlId: string,
-  messages: CompletionMessage[],
+  conversation: StoredConversation,
 ): Promise<void> {
-  await redis.set(key(callControlId), JSON.stringify(messages));
+  await redis.set(key(callControlId), JSON.stringify(conversation));
   await redis.expire(key(callControlId), TTL_SECONDS);
+}
+
+export async function getMessages(
+  callControlId: string,
+): Promise<CompletionMessage[]> {
+  const stored = await getStored(callControlId);
+  return stored?.messages ?? [];
+}
+
+export async function init(
+  callControlId: string,
+  metadata: CallMetadata,
+): Promise<void> {
+  await setStored(callControlId, { metadata, messages: [] });
 }
 
 export async function append(
   callControlId: string,
   message: CompletionMessage,
 ): Promise<CompletionMessage[]> {
-  const messages = await get(callControlId);
-  messages.push(message);
-  await set(callControlId, messages);
-  return messages;
+  const stored = await getStored(callControlId);
+  if (!stored) return [];
+  stored.messages.push(message);
+  await setStored(callControlId, stored);
+  return stored.messages;
+}
+
+export async function getAll(
+  callControlId: string,
+): Promise<StoredConversation | null> {
+  return getStored(callControlId);
 }
 
 export async function remove(callControlId: string): Promise<void> {

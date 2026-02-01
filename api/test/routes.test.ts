@@ -355,6 +355,8 @@ describe("API Routes", () => {
             event_type: "call.initiated",
             payload: {
               call_control_id: "test-call-control-id",
+              from: "+15551234567",
+              to: "+15559876543",
             },
           },
         }),

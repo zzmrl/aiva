@@ -1,5 +1,5 @@
 import { streamCompletion } from "../llm/repository";
-import { service as messageService } from "../message";
+import { service as messageService, repository as messageRepository } from "../message";
 import * as conversations from "./conversations";
 import * as repository from "./repository";
 import type {
@@ -13,13 +13,16 @@ import type {
 export async function handleCallInitiated(
   payload: CallInitiatedPayload,
 ): Promise<void> {
+  await conversations.init(payload.call_control_id, {
+    from: payload.from,
+    to: payload.to,
+  });
   await repository.answerCall(payload.call_control_id);
 }
 
 export async function handleCallAnswered(
   payload: CallAnsweredPayload,
 ): Promise<void> {
-  await conversations.set(payload.call_control_id, []);
   await repository.startTranscription(payload.call_control_id);
   await repository.speak(
     payload.call_control_id,
@@ -39,14 +42,14 @@ export async function handleTranscription(
     return;
   }
 
-  const conversation = await conversations.append(call_control_id, {
+  const messages = await conversations.append(call_control_id, {
     role: "user",
     content: transcript,
   });
 
   let fullResponse = "";
   let firstChunk = true;
-  for await (const chunk of streamCompletion(conversation)) {
+  for await (const chunk of streamCompletion(messages)) {
     fullResponse += chunk;
     if (firstChunk && fullResponse.includes(".")) {
       firstChunk = false;
@@ -63,6 +66,21 @@ export async function handleTranscription(
 export async function handleCallHangup(
   payload: CallHangupPayload,
 ): Promise<void> {
+  const conversation = await conversations.getAll(payload.call_control_id);
+
+  if (conversation && conversation.messages.length > 0) {
+    const { from, to } = conversation.metadata;
+
+    for (const message of conversation.messages) {
+      const isUser = message.role === "user";
+      await messageRepository.create({
+        sender: isUser ? from : to,
+        receiver: isUser ? to : from,
+        body: message.content?.toString() ?? "",
+      });
+    }
+  }
+
   await conversations.remove(payload.call_control_id);
 }
 
