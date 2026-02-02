@@ -7,27 +7,31 @@ import type { Message } from '../src/lib/api';
 export const mockMessages: Message[] = [
   {
     id: 1,
-    phoneNumber: '5551234567',
+    sender: '5551234567',
+    receiver: '5550000000',
     body: 'Hello, this is a test message',
-    createdAt: new Date('2024-01-15T10:30:00Z'),
+    created: new Date('2024-01-15T10:30:00Z'),
   },
   {
     id: 2,
-    phoneNumber: '5559876543',
+    sender: '5559876543',
+    receiver: '5550000000',
     body: 'Another message with different content',
-    createdAt: new Date('2024-01-14T15:45:00Z'),
+    created: new Date('2024-01-14T15:45:00Z'),
   },
   {
     id: 3,
-    phoneNumber: '5551234567',
+    sender: '5551234567',
+    receiver: '5550000000',
     body: 'Message from the same number',
-    createdAt: new Date('2024-01-13T09:20:00Z'),
+    created: new Date('2024-01-13T09:20:00Z'),
   },
   {
     id: 23754,
-    phoneNumber: '8258876333',
+    sender: '8258876333',
+    receiver: '5550000000',
     body: 'Message that has a unique identifier',
-    createdAt: new Date('2024-01-24T15:45:00Z'),
+    created: new Date('2024-01-24T15:45:00Z'),
   },
 ];
 

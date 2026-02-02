@@ -203,21 +203,24 @@ test.describe('Message Archive Integration Tests', () => {
     const recentMessages: typeof mockMessages = [
       {
         id: 1,
-        phoneNumber: '5551234567',
+        sender: '5551234567',
+        receiver: '5550000000',
         body: 'Just now message',
-        createdAt: new Date(Date.now() - 30000), // 30 seconds ago
+        created: new Date(Date.now() - 30000), // 30 seconds ago
       },
       {
         id: 2,
-        phoneNumber: '5559876543',
+        sender: '5559876543',
+        receiver: '5550000000',
         body: 'Minutes ago message',
-        createdAt: new Date(Date.now() - 5 * 60000), // 5 minutes ago
+        created: new Date(Date.now() - 5 * 60000), // 5 minutes ago
       },
       {
         id: 3,
-        phoneNumber: '5551111111',
+        sender: '5551111111',
+        receiver: '5550000000',
         body: 'Hours ago message',
-        createdAt: new Date(Date.now() - 2 * 3600000), // 2 hours ago
+        created: new Date(Date.now() - 2 * 3600000), // 2 hours ago
       },
     ];
 
@@ -238,9 +241,10 @@ test.describe('Message Archive Integration Tests', () => {
     const specialCharMessages: typeof mockMessages = [
       {
         id: 1,
-        phoneNumber: '5551234567',
+        sender: '5551234567',
+        receiver: '5550000000',
         body: 'Message with @special #characters & symbols!',
-        createdAt: new Date('2024-01-15T10:30:00Z'),
+        created: new Date('2024-01-15T10:30:00Z'),
       },
     ];
 
