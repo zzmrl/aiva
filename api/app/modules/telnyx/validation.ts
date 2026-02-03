@@ -4,7 +4,7 @@ const phoneNumberSchema = z.object({ phone_number: z.string().min(1) });
 
 const messagingBodySchema = z.object({
   data: z.object({
-    id: z.string().uuid(),
+    id: z.uuid(),
     event_type: z.string().min(1),
     payload: z.object({
       to: z.tuple([phoneNumberSchema]).rest(phoneNumberSchema),
