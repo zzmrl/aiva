@@ -15,7 +15,7 @@ services:
       PORT: ${API_PORT:-3000}
       NODE_ENV: ${NODE_ENV:-development}
       DATABASE_URL: "postgres://$DATABASE_USER:$DATABASE_PASSWORD@$DATABASE_HOST:$DATABASE_PORT/$DATABASE_NAME"
-      VENICE_API_KEY: ${VENICE_API_KEY:?Unique venice API key found in settings}
+      VENICE_API_KEY: ${VENICE_API_KEY:?Venice API key found in settings}
       TELNYX_APP_ID: ${TELNYX_APP_ID:?Telnyx app ID}
       TELNYX_API_KEY: ${TELNYX_API_KEY:?Unique Telnyx API key}
       TELNYX_PUBLIC_KEY: ${TELNYX_PUBLIC_KEY:?Telnyx public key for validation}
@@ -30,16 +30,16 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DATABASE_USER:?A username for the account, also used for database name}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?A strong password for the account}
+      POSTGRES_USER: ${DATABASE_USER:?username for the account, also used for database name}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?password for the account}
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: >
         pg_isready
-        -U $$(cat /run/secrets/postgres_user)
-        -d $$(cat /run/secrets/postgres_db)
+        -U $$POSTGRES_USER
+        -d $$POSTGRES_USER
       interval: 30s
       start_period: 5s
       timeout: 10s
