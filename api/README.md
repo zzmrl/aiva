@@ -78,25 +78,15 @@ bun lint
 - `TELNYX_API_KEY`: Telnyx API key
 - `TELNYX_PUBLIC_KEY`: Telnyx public key for validation
 - `REDIS_URL`: Redis connection URL (default: redis://localhost:6379)
-
-### Either DB URL or Individual Settings
-
 - `DATABASE_URL`: Database connection URL
-
-Or
-
-- `DATABASE_USER`: Database user
-- `DATABASE_PASSWORD`: Database password
-- `DATABASE_NAME`: Database name
-- `DATABASE_HOST`: Database host (default: localhost)
-- `DATABASE_PORT`: Database port (default: 5432)
 
 ### `_FILE` suffixed env variables
 
 This application checks each `_FILE` suffixed variable, reads the file if it exists, 
-and falls back to the regular environment variable otherwise. For example, if 
-`DATABASE_PASSWORD_FILE` is set, it will read the password from the file specified 
-by the variable.
+and falls back to the original environment variable otherwise. 
+
+For example, if `VENICE_API_KEY_FILE` is set, the application will set `VENICE_API_KEY` from
+the file specified. Otherwise, it will use the value of `VENICE_API_KEY` environment variable.
 
 ## Module Structure
 
