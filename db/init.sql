@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS messages (
     sender VARCHAR(20) NOT NULL,
     receiver VARCHAR(20) NOT NULL,
     body TEXT NOT NULL,
+    direction VARCHAR(8) NOT NULL DEFAULT 'inbound' CHECK (direction IN ('inbound', 'outbound')),
     created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

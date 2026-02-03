@@ -1,7 +1,7 @@
 import { sql } from "../../shared/database";
-import type { Message } from "./model";
+import type { Conversation, Message } from "./model";
 
-export type CreateMessageInput = Pick<Message, "receiver" | "sender" | "body">;
+export type CreateMessageInput = Pick<Message, "receiver" | "sender" | "body" | "direction">;
 
 /**
  * Insert a new message
@@ -81,5 +81,23 @@ export async function findConversation(
        OR (sender = ${phone2} AND receiver = ${phone1})
     ${ageFilter}
     ORDER BY created ASC
+  `;
+}
+
+/**
+ * Get unique conversations with their latest message
+ * @returns Array of conversations ordered by most recent message first
+ */
+export async function findConversations(): Promise<Conversation[]> {
+  return sql`
+    SELECT DISTINCT ON (LEAST(sender, receiver), GREATEST(sender, receiver))
+      LEAST(sender, receiver) as phone1,
+      GREATEST(sender, receiver) as phone2,
+      body as last_message_body,
+      sender as last_message_sender,
+      created as last_message_at,
+      CASE WHEN direction = 'inbound' THEN sender ELSE receiver END as contact_phone
+    FROM messages
+    ORDER BY LEAST(sender, receiver), GREATEST(sender, receiver), created DESC
   `;
 }

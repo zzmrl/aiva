@@ -11,7 +11,7 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="h-screen">
+<div class="h-screen flex flex-col">
   <header class="navbar bg-base-100 shadow-sm">
     <nav class="flex w-full items-center max-w-6xl mx-auto">
       <div class="flex-1">
@@ -24,7 +24,7 @@
       </div>
     </nav>
   </header>
-  <main class="p-2 md:p-4">
+  <main class="flex-1 overflow-hidden">
     {@render children()}
   </main>
 </div>

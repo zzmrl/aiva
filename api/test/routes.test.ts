@@ -8,6 +8,7 @@ const mockCreate = mock(
       receiver: "",
       sender: "",
       body: "",
+      direction: "inbound",
       created: new Date(),
     }),
 );
@@ -172,6 +173,7 @@ describe("API Routes", () => {
         receiver: "+15559876543",
         sender: "+15551234567",
         body: "This is a transcribed message",
+        direction: "inbound",
         created: new Date(),
       });
 
@@ -190,6 +192,7 @@ describe("API Routes", () => {
         body: "This is a transcribed message",
         receiver: "+15559876543",
         sender: "+15551234567",
+        direction: "inbound",
       });
     });
 
@@ -237,6 +240,7 @@ describe("API Routes", () => {
         receiver: "+15559876543",
         sender: "+15551234567",
         body: "Hello from SMS",
+        direction: "inbound",
         created: new Date(),
       });
 
@@ -263,6 +267,7 @@ describe("API Routes", () => {
         body: "Hello from SMS",
         receiver: "+15559876543",
         sender: "+15551234567",
+        direction: "inbound",
       });
       expect(mockFindConversation).toHaveBeenCalledWith(
         "+15551234567",
@@ -322,6 +327,7 @@ describe("API Routes", () => {
         receiver: "+15559876543",
         sender: "+15551234567",
         body: specialBody,
+        direction: "inbound",
         created: new Date(),
       });
 
@@ -340,6 +346,7 @@ describe("API Routes", () => {
         body: specialBody,
         sender: "+15551234567",
         receiver: "+15559876543",
+        direction: "inbound",
       });
     });
   });
@@ -420,6 +427,7 @@ describe("API Routes", () => {
         receiver: "+15559876543",
         sender: "+15551234567",
         body: "Hello from Telnyx",
+        direction: "inbound",
         created: new Date(),
       });
 
@@ -444,6 +452,7 @@ describe("API Routes", () => {
         body: "Hello from Telnyx",
         receiver: "+15559876543",
         sender: "+15551234567",
+        direction: "inbound",
       });
     });
 
@@ -528,6 +537,7 @@ describe("API Routes", () => {
         receiver: "+15559876543",
         sender: "+15551234567",
         body: specialText,
+        direction: "inbound",
         created: new Date(),
       });
 
@@ -552,6 +562,7 @@ describe("API Routes", () => {
         body: specialText,
         receiver: "+15559876543",
         sender: "+15551234567",
+        direction: "inbound",
       });
     });
   });
@@ -564,6 +575,7 @@ describe("API Routes", () => {
           sender: "+15551234567",
           receiver: "+15559876543",
           body: "First message",
+          direction: "inbound",
           created: new Date("2024-01-15T10:30:00Z"),
         },
         {
@@ -571,6 +583,7 @@ describe("API Routes", () => {
           sender: "+15559876543",
           receiver: "+15551234567",
           body: "Second message",
+          direction: "outbound",
           created: new Date("2024-01-16T10:30:00Z"),
         },
       ];

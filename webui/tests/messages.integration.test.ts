@@ -1,127 +1,116 @@
 import { expect, test } from '@playwright/test';
 import {
-  mockMessages,
+  mockConversations,
+  mockConversationMessages,
   setupMockApi,
   setupMockApiError,
   setupMockApiFailure,
-  waitForMessagesLoaded,
+  waitForConversationsLoaded,
 } from './test-helpers';
 
-test.describe('Message Archive Integration Tests', () => {
+test.describe('Chat UI Integration Tests', () => {
   test.beforeEach(async ({ page }) => {
     await setupMockApi(page);
   });
 
-  test('should load and display messages on page load', async ({ page }) => {
+  test('should load and display conversation list', async ({ page }) => {
     await page.goto('/');
+    await waitForConversationsLoaded(page);
 
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Message Archive');
-    await waitForMessagesLoaded(page);
+    const list = page.getByRole('list', { name: 'Conversations' });
+    await expect(list).toBeVisible();
 
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
-
-    const firstMessage = page.getByRole('article').first();
-    await expect(firstMessage).toContainText('(555) 123-4567');
-    await expect(firstMessage).toContainText('Hello, this is a test message');
-    await expect(firstMessage).toContainText('#1');
-  });
-
-  test('should format phone numbers correctly', async ({ page }) => {
-    await page.goto('/');
-    await waitForMessagesLoaded(page);
-
-    await expect(page.getByText('(555) 123-4567').first()).toBeVisible();
+    // Should show contact phone numbers (not the system phone)
+    await expect(page.getByText('(555) 123-4567')).toBeVisible();
     await expect(page.getByText('(555) 987-6543')).toBeVisible();
+    await expect(page.getByText('(825) 887-6333')).toBeVisible();
   });
 
-  test('should search messages by phone number', async ({ page }) => {
+  test('should show last message preview in conversation list', async ({ page }) => {
     await page.goto('/');
-    await waitForMessagesLoaded(page);
+    await waitForConversationsLoaded(page);
 
-    // Wait for messages to load
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
-
-    // Type in search box
-    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
-    await searchInput.fill('5551234567');
-
-    // Should filter to show only messages from that number
-    await expect(page.getByRole('article')).toHaveCount(2);
-    await expect(page.getByText('(555) 123-4567')).toHaveCount(2);
-    await expect(page.getByText('(555) 987-6543')).not.toBeVisible();
-  });
-
-  test('should search messages by message body', async ({ page }) => {
-    await page.goto('/');
-    await waitForMessagesLoaded(page);
-
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
-
-    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
-    await searchInput.fill('different content');
-
-    // Should show only the matching message
-    await expect(page.getByRole('article')).toHaveCount(1);
+    await expect(page.getByText('Hello, this is a test message')).toBeVisible();
     await expect(page.getByText('Another message with different content')).toBeVisible();
   });
 
-  test('should search messages by ID', async ({ page }) => {
+  test('should show chat view when selecting a conversation', async ({ page }) => {
     await page.goto('/');
-    await waitForMessagesLoaded(page);
+    await waitForConversationsLoaded(page);
 
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
+    await page.getByText('(555) 123-4567').click();
 
-    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
-    await searchInput.fill('23754');
-
-    await expect(page.getByRole('article').filter({ visible: true })).toHaveCount(1);
-    await expect(page.getByText('#23754')).toBeVisible();
+    // Should show the chat view with messages
+    await expect(page.getByText('Hi! How can I help you?')).toBeVisible();
+    await expect(page.getByText('Message from the same number')).toBeVisible();
   });
 
-  test('should show search results count when filtering', async ({ page }) => {
+  test('should render outgoing messages differently from incoming', async ({ page }) => {
     await page.goto('/');
-    await waitForMessagesLoaded(page);
+    await waitForConversationsLoaded(page);
 
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
+    await page.getByText('(555) 123-4567').click();
 
-    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
-    await searchInput.fill('5551234567');
+    // Wait for chat bubbles to appear
+    await expect(page.getByText('Hi! How can I help you?')).toBeVisible();
 
-    await expect(page.getByText(`Showing 2 of ${mockMessages.length} messages`)).toBeVisible();
+    // Outgoing message (from system phone) should have chat-end class
+    const outgoingBubble = page.locator('.chat-end');
+    await expect(outgoingBubble).toHaveCount(1);
+    await expect(outgoingBubble).toContainText('Hi! How can I help you?');
+
+    // Incoming messages should have chat-start class
+    const incomingBubbles = page.locator('.chat-start');
+    await expect(incomingBubbles).toHaveCount(2);
   });
 
-  test('should clear search when clicking clear button', async ({ page }) => {
+  test('should show back button on mobile to return to conversation list', async ({ page }) => {
+    // Set mobile viewport
+    await page.setViewportSize({ width: 375, height: 667 });
+
     await page.goto('/');
-    await waitForMessagesLoaded(page);
+    await waitForConversationsLoaded(page);
 
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
+    // Select a conversation
+    await page.getByText('(555) 123-4567').click();
 
-    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
-    await searchInput.fill('nonexistent');
+    // Back button should be visible on mobile
+    const backButton = page.getByRole('button', { name: 'Back to conversations' });
+    await expect(backButton).toBeVisible();
 
-    await expect(page.getByText('No messages found matching')).toBeVisible();
+    // Click back to return to conversation list
+    await backButton.click();
 
-    await page.getByRole('button', { name: 'Clear search' }).click();
-
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
-    await expect(searchInput).toHaveValue('');
+    // Should show conversation list again
+    await expect(page.getByRole('list', { name: 'Conversations' })).toBeVisible();
   });
 
-  test('should display empty state when no messages', async ({ page }) => {
-    await setupMockApi(page, []);
+  test('should search/filter conversations by phone number', async ({ page }) => {
+    await page.goto('/');
+    await waitForConversationsLoaded(page);
+
+    const searchInput = page.getByRole('searchbox', { name: 'Search conversations' });
+    await searchInput.fill('1234567');
+
+    // Should only show matching conversation
+    await expect(page.getByText('(555) 123-4567')).toBeVisible();
+    await expect(page.getByText('(555) 987-6543')).not.toBeVisible();
+  });
+
+  test('should display empty state when no conversations', async ({ page }) => {
+    await setupMockApi(page, [], []);
 
     await page.goto('/');
-    await waitForMessagesLoaded(page);
+    await waitForConversationsLoaded(page);
 
-    await expect(page.getByText('No messages yet')).toBeVisible();
-    await expect(page.getByRole('article')).toHaveCount(0);
+    await expect(page.getByText('No conversations yet.')).toBeVisible();
   });
 
   test('should display error state when API fails', async ({ page }) => {
     await setupMockApiError(page, 500);
 
     await page.goto('/');
-    await waitForMessagesLoaded(page);
+    await waitForConversationsLoaded(page);
 
     await expect(
       page.getByText('Something went wrong loading messages. Please try again later.'),
@@ -133,7 +122,7 @@ test.describe('Message Archive Integration Tests', () => {
     await setupMockApiFailure(page);
 
     await page.goto('/');
-    await waitForMessagesLoaded(page);
+    await waitForConversationsLoaded(page);
 
     await expect(
       page.getByText('Something went wrong loading messages. Please try again later.'),
@@ -142,131 +131,57 @@ test.describe('Message Archive Integration Tests', () => {
 
   test('should show loading state initially', async ({ page }) => {
     // Delay the API response to see loading state
-    await page.route('**/messages', async (route) => {
+    await page.route('**/messages/conversations', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 500));
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(mockMessages),
+        body: JSON.stringify(mockConversations),
       });
     });
 
     await page.goto('/');
 
     // Should show loading spinner initially
-    await expect(page.getByRole('status', { name: 'Loading messages' })).toBeVisible();
+    await expect(page.getByRole('status', { name: 'Loading conversations' })).toBeVisible();
   });
 
-  test('should handle case-insensitive search', async ({ page }) => {
+  test('should show select conversation placeholder on desktop', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+
     await page.goto('/');
-    await waitForMessagesLoaded(page);
+    await waitForConversationsLoaded(page);
 
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
-
-    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
-    await searchInput.fill('HELLO');
-
-    // Should find message regardless of case
-    await expect(page.getByRole('article')).toHaveCount(1);
-    await expect(page.getByText('Hello, this is a test message')).toBeVisible();
+    await expect(page.getByText('Select a conversation')).toBeVisible();
   });
 
-  test('should handle partial phone number search', async ({ page }) => {
+  test('should display messages in chronological order (oldest first)', async ({ page }) => {
     await page.goto('/');
-    await waitForMessagesLoaded(page);
+    await waitForConversationsLoaded(page);
 
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
+    await page.getByText('(555) 123-4567').click();
 
-    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
-    await searchInput.fill('123-4567');
+    // Wait for chat to load
+    await expect(page.getByText('Hi! How can I help you?')).toBeVisible();
 
-    // Should find messages with matching phone number
-    await expect(page.getByRole('article')).toHaveCount(2);
+    // Messages are returned DESC from API and reversed for display
+    // So order should be: test message, help response, same number
+    const bubbles = page.locator('.chat-bubble');
+    await expect(bubbles).toHaveCount(mockConversationMessages.length);
+
+    await expect(bubbles.nth(0)).toContainText('Message from the same number');
+    await expect(bubbles.nth(1)).toContainText('Hi! How can I help you?');
+    await expect(bubbles.nth(2)).toContainText('Hello, this is a test message');
   });
 
-  test('should display messages in correct order (newest first)', async ({ page }) => {
+  test('should show contact phone in conversation header', async ({ page }) => {
     await page.goto('/');
-    await waitForMessagesLoaded(page);
+    await waitForConversationsLoaded(page);
 
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
+    await page.getByText('(555) 123-4567').click();
 
-    const firstCard = page.getByRole('article').first();
-    await expect(firstCard).toContainText('#1');
-    await expect(firstCard).toContainText('Hello, this is a test message');
-
-    const lastCard = page.getByRole('article').last();
-    await expect(lastCard).toContainText('#23754');
-  });
-
-  test('should format dates correctly in message cards', async ({ page }) => {
-    // Create messages with recent dates to test formatting
-    const recentMessages: typeof mockMessages = [
-      {
-        id: 1,
-        sender: '5551234567',
-        receiver: '5550000000',
-        body: 'Just now message',
-        created: new Date(Date.now() - 30000), // 30 seconds ago
-      },
-      {
-        id: 2,
-        sender: '5559876543',
-        receiver: '5550000000',
-        body: 'Minutes ago message',
-        created: new Date(Date.now() - 5 * 60000), // 5 minutes ago
-      },
-      {
-        id: 3,
-        sender: '5551111111',
-        receiver: '5550000000',
-        body: 'Hours ago message',
-        created: new Date(Date.now() - 2 * 3600000), // 2 hours ago
-      },
-    ];
-
-    await setupMockApi(page, recentMessages);
-    await page.goto('/');
-    await waitForMessagesLoaded(page);
-
-    const firstCard = page.getByRole('article').nth(0);
-    const secondCard = page.getByRole('article').nth(1);
-    const thirdCard = page.getByRole('article').nth(2);
-
-    await expect(firstCard.getByText(/Just now$/)).toBeVisible();
-    await expect(secondCard.getByText(/\d+m ago/)).toBeVisible();
-    await expect(thirdCard.getByText(/\d+h ago/)).toBeVisible();
-  });
-
-  test('should handle search with special characters', async ({ page }) => {
-    const specialCharMessages: typeof mockMessages = [
-      {
-        id: 1,
-        sender: '5551234567',
-        receiver: '5550000000',
-        body: 'Message with @special #characters & symbols!',
-        created: new Date('2024-01-15T10:30:00Z'),
-      },
-    ];
-
-    await setupMockApi(page, specialCharMessages);
-    await page.goto('/');
-    await waitForMessagesLoaded(page);
-
-    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
-    await searchInput.fill('@special');
-
-    await expect(page.getByRole('article')).toHaveCount(1);
-    await expect(page.getByText('@special #characters')).toBeVisible();
-  });
-
-  test('should handle whitespace-only search query', async ({ page }) => {
-    await page.goto('/');
-    await waitForMessagesLoaded(page);
-
-    const searchInput = page.getByRole('searchbox', { name: 'Search messages' });
-    await searchInput.fill('   '); // Only whitespace
-
-    // Should show all messages (whitespace is trimmed)
-    await expect(page.getByRole('article')).toHaveCount(mockMessages.length);
+    // Header should show the formatted contact phone
+    const header = page.locator('h2');
+    await expect(header).toContainText('(555) 123-4567');
   });
 });

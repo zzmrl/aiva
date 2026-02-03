@@ -1,17 +1,20 @@
 <script lang="ts">
-  import { getMessages, type Message } from '$lib/api';
+  import { getConversations, getMessagesByPhone, type Conversation, type Message } from '$lib/api';
   import { onMount } from 'svelte';
-  import MessageCard from '$lib/MessageCard.svelte';
+  import ConversationList from '$lib/ConversationList.svelte';
+  import ConversationView from '$lib/ConversationView.svelte';
   import ErrorIcon from '$lib/icons/ErrorIcon.svelte';
 
+  let conversations: Conversation[] = $state([]);
   let messages: Message[] = $state([]);
   let loading = $state(true);
+  let messagesLoading = $state(false);
   let error: unknown = $state(null);
-  let searchQuery = $state('');
+  let selectedPhone: string | null = $state(null);
 
   onMount(async () => {
     try {
-      messages = await getMessages();
+      conversations = await getConversations();
     } catch (err) {
       console.error(err);
       error = err;
@@ -20,71 +23,75 @@
     }
   });
 
-  function filterMessages(messages: Message[], query: string): Message[] {
-    if (!query.trim()) {
-      return messages;
+  async function selectConversation(phone: string) {
+    selectedPhone = phone;
+    messagesLoading = true;
+    try {
+      const fetched = await getMessagesByPhone(phone);
+      messages = fetched.reverse();
+    } catch (err) {
+      console.error(err);
+      messages = [];
+    } finally {
+      messagesLoading = false;
     }
-
-    const lowerQuery = query.toLowerCase().trim();
-    return messages.filter((message) => {
-      if (message.sender.includes(lowerQuery.replace(/\+|\(|\)|-|\s/g, ''))) {
-        return true;
-      }
-      if (message.body.toLowerCase().includes(lowerQuery)) {
-        return true;
-      }
-      if (message.id.toString().includes(lowerQuery)) {
-        return true;
-      }
-      return false;
-    });
   }
-  const filteredMessages = $derived(filterMessages(messages, searchQuery));
+
+  function goBack() {
+    selectedPhone = null;
+    messages = [];
+  }
 </script>
 
-<div class="container mx-auto max-w-6xl mb-6">
-  <div class="flex flex-col md:flex-row md:inline-flex justify-between w-full gap-2">
-    <h1 class="text-xl font-bold text-center">Message Archive</h1>
-    <input
-      type="search"
-      placeholder="Search messages..."
-      aria-label="Search messages"
-      class="input w-full md:w-80"
-      bind:value={searchQuery}
-    />
+<div class="flex h-full">
+  <!-- Conversation list sidebar -->
+  <div
+    class="w-full md:w-80 md:border-r md:border-base-300 shrink-0 {selectedPhone
+      ? 'hidden md:flex md:flex-col'
+      : 'flex flex-col'}"
+  >
+    {#if loading}
+      <div
+        class="flex justify-center items-center py-12 flex-1"
+        role="status"
+        aria-label="Loading conversations"
+      >
+        <span class="loading loading-spinner loading-lg"></span>
+      </div>
+    {:else if error}
+      <div class="p-4">
+        <div class="alert alert-error" role="alert">
+          <ErrorIcon />
+          <span>Something went wrong loading messages. Please try again later.</span>
+        </div>
+      </div>
+    {:else if conversations.length === 0}
+      <div class="text-center py-12 flex-1" role="status">
+        <p class="text-base-content/60">No conversations yet.</p>
+      </div>
+    {:else}
+      <ConversationList {conversations} {selectedPhone} onselect={selectConversation} />
+    {/if}
   </div>
-</div>
-<div class="container mx-auto max-w-6xl mb-6">
-  {#if loading}
-    <div class="flex justify-center items-center py-12" role="status" aria-label="Loading messages">
-      <span class="loading loading-spinner loading-lg"></span>
-    </div>
-  {:else if error}
-    <div class="alert alert-error" role="alert">
-      <ErrorIcon />
-      <span>Something went wrong loading messages. Please try again later.</span>
-    </div>
-  {:else if messages && messages.length === 0}
-    <div class="text-center py-12" role="status">
-      <p class="text-base-content/60">No messages yet.</p>
-    </div>
-  {:else if filteredMessages.length === 0 && searchQuery.trim()}
-    <div class="text-center py-12" role="status">
-      <p class="text-base-content/60">No messages found matching "{searchQuery}".</p>
-      <button class="btn btn-sm btn-ghost mt-2" onclick={() => (searchQuery = '')}>
-        Clear search
-      </button>
-    </div>
-  {:else}
-    {#if searchQuery.trim()}
-      <div class="mb-4 text-sm text-base-content/60" role="status" aria-live="polite">
-        Showing {filteredMessages.length} of {messages.length} messages
+
+  <!-- Chat view -->
+  <div class="flex-1 {selectedPhone ? 'flex flex-col' : 'hidden md:flex md:flex-col'}">
+    {#if selectedPhone}
+      {#if messagesLoading}
+        <div
+          class="flex justify-center items-center py-12 flex-1"
+          role="status"
+          aria-label="Loading messages"
+        >
+          <span class="loading loading-spinner loading-lg"></span>
+        </div>
+      {:else}
+        <ConversationView {messages} contactPhone={selectedPhone} onback={goBack} />
+      {/if}
+    {:else}
+      <div class="flex items-center justify-center flex-1 text-base-content/40">
+        <p>Select a conversation</p>
       </div>
     {/if}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-      {#each filteredMessages as message (message.id)}
-        <MessageCard {message} />
-      {/each}
-    </div>
-  {/if}
+  </div>
 </div>

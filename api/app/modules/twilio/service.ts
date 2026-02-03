@@ -33,5 +33,6 @@ export async function handleTranscription(
     body: text,
     receiver: to,
     sender: from,
+    direction: "inbound",
   });
 }

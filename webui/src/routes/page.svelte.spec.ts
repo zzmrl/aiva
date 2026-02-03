@@ -1,13 +1,18 @@
 import { page } from 'vitest/browser';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import Page from './+page.svelte';
+
+vi.mock('$lib/api', () => ({
+  getConversations: vi.fn().mockResolvedValue([]),
+  getMessagesByPhone: vi.fn().mockResolvedValue([]),
+}));
 
 describe('/+page.svelte', () => {
-  it('should render h1', async () => {
+  it('should render conversation layout', async () => {
+    const { default: Page } = await import('./+page.svelte');
     render(Page);
 
-    const heading = page.getByRole('heading', { level: 1 });
-    await expect.element(heading).toBeInTheDocument();
+    const status = page.getByText('No conversations yet.');
+    await expect.element(status).toBeInTheDocument();
   });
 });

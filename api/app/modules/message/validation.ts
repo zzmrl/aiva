@@ -17,5 +17,6 @@ export const createMessageSchema = {
     sender: z.string().min(1),
     receiver: z.string().min(1),
     body: z.string(),
+    direction: z.enum(["inbound", "outbound"]).default("inbound"),
   }),
 };

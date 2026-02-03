@@ -17,3 +17,8 @@ export const create: RequestHandler = async (req, res) => {
   const message = await service.create(req.body);
   res.status(201).json(message);
 };
+
+export const listConversations: RequestHandler = async (_req, res) => {
+  const conversations = await service.listConversations();
+  res.json(conversations);
+};

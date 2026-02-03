@@ -77,6 +77,7 @@ export async function handleCallHangup(
         sender: isUser ? from : to,
         receiver: isUser ? to : from,
         body: message.content?.toString() ?? "",
+        direction: isUser ? "inbound" : "outbound",
       });
     }
   }

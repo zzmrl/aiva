@@ -10,6 +10,7 @@ import {
 const router = Router();
 
 router.get("/", validate(listMessagesSchema), controller.list);
+router.get("/conversations", controller.listConversations);
 router.get("/:id", validate(messageIdSchema), controller.getById);
 router.post("/", validate(createMessageSchema), controller.create);
 

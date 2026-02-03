@@ -1,6 +1,6 @@
 import { NotFoundError } from "../../shared/errors";
 import { createCompletion } from "../llm/repository";
-import { repository, type Message } from ".";
+import { repository, type Conversation, type Message } from ".";
 
 export async function create(
   input: repository.CreateMessageInput,
@@ -32,6 +32,10 @@ export async function getConversation(
   return repository.findConversation(phone1, phone2, minutesAgo);
 }
 
+export async function listConversations(): Promise<Conversation[]> {
+  return repository.findConversations();
+}
+
 export async function handleInboundMessage(
   to: string,
   from: string,
@@ -41,11 +45,12 @@ export async function handleInboundMessage(
     body,
     receiver: to,
     sender: from,
+    direction: "inbound",
   });
   const conversation = await repository.findConversation(from, to, 30);
   const llmResponse = await createCompletion(
     conversation.map((msg) => ({
-      role: msg.sender === to ? "assistant" : "user",
+      role: msg.direction === "outbound" ? "assistant" : "user",
       content: msg.body,
     })),
   );
@@ -53,6 +58,7 @@ export async function handleInboundMessage(
     body: llmResponse,
     receiver: from,
     sender: to,
+    direction: "outbound",
   });
   return llmResponse;
 }
