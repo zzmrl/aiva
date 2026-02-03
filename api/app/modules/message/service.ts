@@ -37,30 +37,22 @@ export async function handleInboundMessage(
   from: string,
   body: string,
 ): Promise<string> {
-  const message = await repository.create({
+  await repository.create({
     body,
     receiver: to,
     sender: from,
   });
-
-  const conversation = await repository.findConversation(
-    message.sender,
-    message.receiver,
-    30,
-  );
-
+  const conversation = await repository.findConversation(from, to, 30);
   const llmResponse = await createCompletion(
     conversation.map((msg) => ({
-      role: msg.sender === message.receiver ? "assistant" : "user",
+      role: msg.sender === to ? "assistant" : "user",
       content: msg.body,
     })),
   );
-
   await repository.create({
     body: llmResponse,
-    receiver: message.sender,
-    sender: message.receiver,
+    receiver: from,
+    sender: to,
   });
-
   return llmResponse;
 }
