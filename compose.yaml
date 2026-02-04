@@ -14,16 +14,11 @@ services:
     environment:
       PORT: ${API_PORT:-3000}
       NODE_ENV: ${NODE_ENV:-development}
-      DATABASE_URL: "postgres://$DATABASE_USER:$DATABASE_PASSWORD@$DATABASE_HOST:$DATABASE_PORT/$DATABASE_NAME"
+      DATABASE_URL: ${DATABASE_URL:?Database connection string}
+      PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
       VENICE_API_KEY: ${VENICE_API_KEY:?Venice API key found in settings}
-      TELNYX_APP_ID: ${TELNYX_APP_ID:?Telnyx app ID}
-      TELNYX_API_KEY: ${TELNYX_API_KEY:?Unique Telnyx API key}
-      TELNYX_PUBLIC_KEY: ${TELNYX_PUBLIC_KEY:?Telnyx public key for validation}
-      REDIS_URL: redis://redis:6379
     depends_on:
       database:
-        condition: service_healthy
-      redis:
         condition: service_healthy
 
   database:
@@ -45,18 +40,6 @@ services:
       timeout: 10s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      start_period: 5s
-      timeout: 10s
-      retries: 5
-
   web:
     build: ./webui
     restart: unless-stopped
@@ -70,5 +53,4 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:
   nginx_logs:

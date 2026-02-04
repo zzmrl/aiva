@@ -9,7 +9,6 @@ import pino from "pino-http";
 import { AppError } from "./shared/errors";
 import { router as messageRouter } from "./modules/message";
 import { router as twilioRouter } from "./modules/twilio";
-import { router as telnyxRouter } from "./modules/telnyx";
 
 const logger = () =>
   pino(
@@ -42,7 +41,6 @@ export function createApp() {
 
   app.use("/messages", messageRouter);
   app.use("/twilio", twilioRouter);
-  app.use("/webhooks", telnyxRouter);
 
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     res.log.error(err.stack);

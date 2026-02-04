@@ -27,10 +27,6 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   PUBLIC_HOST: z.string().min(1),
   VENICE_API_KEY: z.string().min(1),
-  TELNYX_APP_ID: z.string().min(1),
-  TELNYX_API_KEY: z.string().min(1),
-  TELNYX_PUBLIC_KEY: z.string().min(1),
-  REDIS_URL: z.url().default("redis://localhost:6379"),
   DATABASE_URL: z.url(),
 });
 
@@ -42,5 +38,7 @@ if (!parsed.success) {
 }
 
 const config = parsed.data;
+
+export type AppConfig = typeof config;
 
 export default config;
