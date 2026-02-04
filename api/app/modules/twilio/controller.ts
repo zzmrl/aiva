@@ -1,18 +1,27 @@
 import type { RequestHandler } from "express";
+import config from "../../config";
 import * as service from "./service";
+import type { TranscriptionRequest } from "./validation";
 
-export const voice: RequestHandler = (_req, res) => {
-  const response = service.handleIncomingCall();
+export const voice: RequestHandler = (req, res) => {
+  const response = service.handleIncomingCall(
+    config.PUBLIC_HOST,
+    req.body.From,
+    req.body.To,
+  );
   res.type("text/xml").send(response);
 };
 
-export const transcription: RequestHandler = async (req, res) => {
-  await service.handleTranscription(
-    req.body.To,
-    req.body.From,
+export const transcriptionEvents: RequestHandler = async (
+  req: TranscriptionRequest,
+  res,
+) => {
+  res.sendStatus(200);
+  await service.handleTranscriptionEvent(
+    req.body.CallSid,
+    req.body.TranscriptionEvent,
     req.body.TranscriptionText,
   );
-  res.status(201).send();
 };
 
 export const sms: RequestHandler = async (req, res) => {

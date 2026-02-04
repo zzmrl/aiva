@@ -7,9 +7,9 @@ const router = Router();
 
 router.post("/voice", controller.voice);
 router.post(
-  "/transcription",
+  "/transcription-events",
   validate(transcriptionSchema),
-  controller.transcription,
+  controller.transcriptionEvents,
 );
 router.post("/sms", validate(smsWebhookSchema), controller.sms);
 

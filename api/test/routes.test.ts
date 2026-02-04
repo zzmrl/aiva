@@ -72,6 +72,7 @@ mock.module("../app/config", () => ({
   default: {
     NODE_ENV: "test",
     PORT: 3000,
+    PUBLIC_HOST: "test.example.com",
     VENICE_API_KEY: "test-key",
     TELNYX_APP_ID: "test-app-id",
     TELNYX_API_KEY: "test-api-key",
@@ -106,6 +107,25 @@ mock.module("../app/modules/telnyx/repository", () => ({
   startTranscription: mockStartTranscription,
   speak: mockSpeak,
   sendSms: mock(() => Promise.resolve()),
+}));
+
+mock.module("../app/modules/twilio/stream", () => ({
+  attachWebSocket: mock(() => {}),
+  sendAudio: mock(() => {}),
+  clearAudio: mock(() => {}),
+}));
+
+mock.module("../app/modules/twilio/tts", () => ({
+  textToSpeech: mock(() =>
+    Promise.resolve({ pcm: Buffer.alloc(0), sampleRate: 24000 }),
+  ),
+}));
+
+mock.module("../app/modules/twilio/sessions", () => ({
+  create: mock(() => {}),
+  get: mock(() => undefined),
+  appendMessage: mock(() => []),
+  remove: mock(() => undefined),
 }));
 
 const { createApp } = await import("../app");
@@ -146,10 +166,14 @@ describe("API Routes", () => {
   });
 
   describe("POST /twilio/voice", () => {
-    it("should return TwiML voice response", async () => {
+    it("should return TwiML with transcription and stream", async () => {
       const response = await fetch(`${baseUrl}/twilio/voice`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          From: "+15551234567",
+          To: "+15559876543",
+        }),
       });
 
       expect(response.status).toBe(200);
@@ -158,76 +182,92 @@ describe("API Routes", () => {
       const xml = await response.text();
       expect(xml).toContain("<?xml version");
       expect(xml).toContain("<Response>");
+      expect(xml).toContain("<Start>");
+      expect(xml).toContain("<Transcription");
       expect(xml).toContain("<Say>");
-      expect(xml).toContain("Hello. Please leave a message for Automate It.");
-      expect(xml).toContain("<Record");
-      expect(xml).toContain("transcribe");
-      expect(xml).toContain("<Hangup/>");
+      expect(xml).toContain(
+        "Hey it's Aiva! How can I help you today?",
+      );
+      expect(xml).toContain("<Connect>");
+      expect(xml).toContain("<Stream");
+      expect(xml).toContain("test.example.com");
     });
   });
 
-  describe("POST /twilio/transcription", () => {
-    it("should save transcription and return 201", async () => {
-      mockCreate.mockResolvedValueOnce({
-        id: 1,
-        receiver: "+15559876543",
-        sender: "+15551234567",
-        body: "This is a transcribed message",
-        direction: "inbound",
-        created: new Date(),
-      });
+  describe("POST /twilio/transcription-events", () => {
+    it("should return 200 for transcription-content event", async () => {
+      const response = await fetch(
+        `${baseUrl}/twilio/transcription-events`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            CallSid: "CA1234567890abcdef",
+            TranscriptionEvent: "transcription-content",
+            TranscriptionText: "Hello there",
+          }),
+        },
+      );
 
-      const response = await fetch(`${baseUrl}/twilio/transcription`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          TranscriptionText: "This is a transcribed message",
-          From: "+15551234567",
-          To: "+15559876543",
-        }),
-      });
-
-      expect(response.status).toBe(201);
-      expect(mockCreate).toHaveBeenCalledWith({
-        body: "This is a transcribed message",
-        receiver: "+15559876543",
-        sender: "+15551234567",
-        direction: "inbound",
-      });
+      expect(response.status).toBe(200);
     });
 
-    it("should return 400 when TranscriptionText is missing", async () => {
-      const response = await fetch(`${baseUrl}/twilio/transcription`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          From: "+15551234567",
-        }),
-      });
+    it("should return 200 for non-content events", async () => {
+      const response = await fetch(
+        `${baseUrl}/twilio/transcription-events`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            CallSid: "CA1234567890abcdef",
+            TranscriptionEvent: "transcription-started",
+          }),
+        },
+      );
 
-      expect(response.status).toBe(400);
-      expect(mockCreate).not.toHaveBeenCalled();
+      expect(response.status).toBe(200);
     });
 
-    it("should return 400 when From is missing", async () => {
-      const response = await fetch(`${baseUrl}/twilio/transcription`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          TranscriptionText: "Test message",
-        }),
-      });
+    it("should return 400 when CallSid is missing", async () => {
+      const response = await fetch(
+        `${baseUrl}/twilio/transcription-events`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            TranscriptionEvent: "transcription-content",
+            TranscriptionText: "Hello",
+          }),
+        },
+      );
 
       expect(response.status).toBe(400);
-      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when TranscriptionEvent is missing", async () => {
+      const response = await fetch(
+        `${baseUrl}/twilio/transcription-events`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            CallSid: "CA1234567890abcdef",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(400);
     });
 
     it("should return 400 when body is empty", async () => {
-      const response = await fetch(`${baseUrl}/twilio/transcription`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "",
-      });
+      const response = await fetch(
+        `${baseUrl}/twilio/transcription-events`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: "",
+        },
+      );
 
       expect(response.status).toBe(400);
     });

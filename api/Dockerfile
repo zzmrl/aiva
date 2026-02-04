@@ -23,5 +23,5 @@ COPY --from=prerelease /api/app app
 COPY --from=prerelease /api/package.json /api/index.ts ./
 
 USER bun
-EXPOSE 3000/tcp
+EXPOSE 3000
 ENTRYPOINT ["bun", "run", "start"]
