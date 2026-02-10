@@ -10,14 +10,15 @@ RUN mkdir -p /temp/prod
 COPY package.json bun.lock /temp/prod/
 RUN cd /temp/prod && bun install --frozen-lockfile --production
 
-FROM base AS prerelease
+FROM base AS build
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
 ENV NODE_ENV=production
-# RUN bun --bun run test TODO install playwright depeendencies in container
 RUN bun --bun run check
 RUN bun --bun run build
 
-FROM nginx:alpine AS release
-COPY --from=prerelease /app/build /usr/share/nginx/html
+# Minimal image that just holds the static files
+FROM alpine:latest AS release
+COPY --from=build /app/build /app/build
+CMD ["sh", "-c", "cp -r /app/build/* /output/ && echo 'Static files copied' && tail -f /dev/null"]

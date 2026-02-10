@@ -9,8 +9,8 @@ services:
           target: /api/app
           initial_sync: true
     restart: unless-stopped
-    ports:
-      - "3274:3274"
+    expose:
+      - "3274"
     environment:
       PORT: 3274
       NODE_ENV: ${NODE_ENV:-development}
@@ -40,28 +40,37 @@ services:
       timeout: 10s
       retries: 5
 
-  web:
+  webui:
     build: ./webui
+    restart: "no"
+    volumes:
+      - static_files:/output
+
+  nginx:
+    build: ./nginx
     restart: unless-stopped
-    environment:
-      PUBLIC_API_HOST: ${PUBLIC_API_HOST:-http://api:3274}
     ports:
       - "80:80"
       - "443:443"
     volumes:
+      - static_files:/usr/share/nginx/html:ro
       - nginx_logs:/var/log/nginx
+    depends_on:
+      - api
+      - webui
 
   ngrok:
     image: ngrok/ngrok:latest
     profiles: [dev]
-    command: http api:3274 --url ${PUBLIC_HOST:?Static ngrok domain}
+    command: http nginx:80 --url ${PUBLIC_HOST:?Static ngrok domain}
     environment:
       NGROK_AUTHTOKEN: $NGROK_AUTHTOKEN
     ports:
       - "4040:4040"
     depends_on:
-      - api
+      - nginx
 
 volumes:
   postgres_data:
+  static_files:
   nginx_logs:

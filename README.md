@@ -12,30 +12,57 @@ A virtual assistant application that processes phone calls and text messages via
 
 ## Architecture
 
-### Three-Tier Docker Stack
+### Docker Stack
 
-1. **API Backend** (`api/`)
+```
+┌──────────────────────────────────────────────────────┐
+│                  nginx (:80/:443)                    │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  /            → static files (from webui)      │  │
+│  │  /messages/*  → proxy to api                   │  │
+│  │  /health      → proxy to api                   │  │
+│  │  /twilio/*    → proxy to api (+ WebSocket)     │  │
+│  └────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────┘
+        ▲                            │
+        │                            ▼
+   ┌────┴────┐                ┌─────────────┐      ┌──────────┐
+   │  webui  │                │     api     │ ──── │ database │
+   │ (build) │                │  (internal) │      │          │
+   └────┬────┘                └─────────────┘      └──────────┘
+        │
+        ▼
+  static_files
+    (volume)
+```
+
+1. **NGINX** (`nginx/`)
+   - Reverse proxy and static file server
+   - Routes API and WebSocket traffic to backend
+   - Serves static frontend assets
+   - SSL termination (when configured)
+
+2. **API Backend** (`api/`)
    - Express + TypeScript server on Bun runtime
    - Twilio webhook handlers for voice and SMS
    - WebSocket server for real-time voice streaming
    - Venice AI integration for LLM completions
-   - Text-to-speech for voice responses
-
-2. **Database**
-   - PostgreSQL 18 Alpine
-   - Message storage with indexed queries
-   - Conversation tracking by phone number
 
 3. **Web UI** (`webui/`)
    - SvelteKit 2 + Tailwind CSS 4 + DaisyUI
-   - NGINX-served static build
+   - Builds static files to shared volume
    - Chat-style conversation interface
+
+4. **Database**
+   - PostgreSQL 18 Alpine
+   - Message storage with indexed queries
 
 ### Tech Stack
 
 - **Runtime**: Bun
 - **Backend**: Express, TypeScript, WebSocket (ws)
 - **Frontend**: SvelteKit 2, Tailwind CSS 4, DaisyUI
+- **Proxy**: NGINX
 - **Database**: PostgreSQL 18
 - **AI**: Venice AI (OpenAI-compatible API)
 - **Telephony**: Twilio Voice & SMS with Media Streams
@@ -58,7 +85,7 @@ A virtual assistant application that processes phone calls and text messages via
 docker compose up
 ```
 
-The API will be available at `http://localhost:3274` and the web UI at `http://localhost`.
+Everything is available at `http://localhost` - nginx routes to the appropriate service.
 
 ### Development
 
@@ -88,7 +115,7 @@ cd webui && bun dev
 
 ```bash
 cd api
-bun install           # Install dependencies
+bun install          # Install dependencies
 bun dev              # Dev server with hot reload
 bun test             # Run tests
 bun test:watch       # Watch mode
@@ -101,7 +128,7 @@ bun lint             # Lint code
 
 ```bash
 cd webui
-bun install           # Install dependencies
+bun install          # Install dependencies
 bun dev              # Vite dev server
 bun run build        # Production build
 bun check            # Svelte type checking
@@ -179,9 +206,9 @@ Set your Twilio phone number webhooks to:
 - `DB_USER` - Database username
 - `DB_PASSWORD` - Database password
 
-### Web UI
+### Web UI (local development only)
 
-- `PUBLIC_API_HOST` - API backend URL (default: http://api:3274)
+- `PUBLIC_API_HOST` - API backend URL (default: http://localhost:3274)
 
 ### ngrok (dev profile)
 
@@ -191,7 +218,7 @@ Set your Twilio phone number webhooks to:
 
 ```
 .
-├── api/                    # Express API backend
+├── api/                   # Express API backend
 │   ├── app/
 │   │   ├── modules/
 │   │   │   ├── llm/       # Venice AI client and repository
@@ -199,7 +226,10 @@ Set your Twilio phone number webhooks to:
 │   │   │   └── twilio/    # Voice, SMS, and WebSocket handlers
 │   │   └── shared/        # Database, middleware, errors
 │   └── test/              # API tests
-├── webui/                 # SvelteKit frontend
+├── nginx/                 # Reverse proxy
+│   ├── conf.d/            # Server configuration
+│   └── Dockerfile
+├── webui/                 # SvelteKit frontend (builds to volume)
 │   ├── src/
 │   │   ├── routes/        # SvelteKit pages
 │   │   └── lib/           # Components and utilities

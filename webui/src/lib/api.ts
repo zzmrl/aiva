@@ -20,7 +20,7 @@ export type Conversation = {
   contact_phone: string;
 };
 
-const apiHost = PUBLIC_API_HOST ?? 'http://localhost:3000';
+const apiHost = PUBLIC_API_HOST || '';
 
 export async function getMessages(): Promise<Message[]> {
   const response = await fetch(`${apiHost}/messages`);
