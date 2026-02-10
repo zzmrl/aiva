@@ -1,13 +1,18 @@
-#!/usr/bin/sh
+#!/usr/bin/env bash
 
-docker compose up -d database
-
-export DATABASE_PASSWORD_FILE="../secrets/postgres_password"
-export DATABASE_USER_FILE="../secrets/postgres_user"
-export DATABASE_NAME_FILE="../secrets/postgres_user"
-export DATABASE_HOST="localhost"
-export DATABASE_PORT="5432"
+set -e
 
 cd "$(dirname "$0")/.." || exit 1
-(cd api && bun --bun dev) &&
-(cd webui && bun --bun dev)
+
+# Start database
+docker compose up -d database
+
+set -a && source ../.env && set +a
+export NODE_ENV="development"
+export PUBLIC_HOST="${PUBLIC_HOST:-localhost:3000}"
+
+# Run both dev servers in parallel
+(cd api && bun --bun dev) &
+(cd webui && bun --bun dev) &
+
+wait

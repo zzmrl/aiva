@@ -58,7 +58,7 @@ A virtual assistant application that processes phone calls and text messages via
 docker compose up
 ```
 
-The API will be available at `http://localhost:3000` and the web UI at `http://localhost`.
+The API will be available at `http://localhost:3274` and the web UI at `http://localhost`.
 
 ### Development
 
@@ -115,21 +115,37 @@ bun test:e2e         # E2E tests (Playwright)
 
 ## Testing Webhooks
 
-Use ngrok or a similar tunneling service to expose your local API for Twilio webhook delivery:
+ngrok is included in the Docker Compose stack for development. To use it:
+
+### 1. Set up ngrok account
+
+1. Sign up at https://ngrok.com (free tier works)
+2. Get your authtoken from https://dashboard.ngrok.com/get-started/your-authtoken
+3. Claim a free static domain at https://dashboard.ngrok.com/domains
+
+### 2. Add to your `.env` file
 
 ```bash
-ngrok http 3000
+PUBLIC_HOST=your-static-domain.ngrok-free.app
 ```
 
-Set the `PUBLIC_HOST` environment variable to your ngrok hostname (without the `https://` prefix):
+### 3. Run with dev profile
 
 ```bash
-export PUBLIC_HOST=your-subdomain.ngrok.io
+# Start full stack with ngrok tunnel
+docker compose --profile dev up
+
+# Or start just ngrok alongside existing services
+docker compose --profile dev up ngrok
 ```
 
-Configure your Twilio phone number webhooks:
-- **Voice URL**: `https://your-subdomain.ngrok.io/twilio/voice`
-- **SMS URL**: `https://your-subdomain.ngrok.io/twilio/sms`
+The ngrok web UI is available at http://localhost:4040 to inspect requests.
+
+### 4. Configure Twilio webhooks
+
+Set your Twilio phone number webhooks to:
+- **Voice URL**: `https://your-static-domain.ngrok-free.app/twilio/voice`
+- **SMS URL**: `https://your-static-domain.ngrok-free.app/twilio/sms`
 
 ## API Endpoints
 
@@ -152,15 +168,24 @@ Configure your Twilio phone number webhooks:
 
 ### API
 
-- `PORT` - Server port (default: 3000)
+- `PORT` - Server port (default: 3274)
 - `NODE_ENV` - Environment (development/production/test)
 - `DATABASE_URL` - PostgreSQL connection string (e.g., `postgres://user:pass@host:5432/db`)
 - `PUBLIC_HOST` - Public hostname for Twilio webhooks (e.g., `your-app.ngrok.io`)
 - `VENICE_API_KEY` - Venice AI API key
 
+### Database
+
+- `DB_USER` - Database username
+- `DB_PASSWORD` - Database password
+
 ### Web UI
 
-- `PUBLIC_API_HOST` - API backend URL (default: http://localhost:3000)
+- `PUBLIC_API_HOST` - API backend URL (default: http://api:3274)
+
+### ngrok (dev profile)
+
+- `NGROK_AUTHTOKEN` - (optional) Auth token from ngrok dashboard
 
 ## Project Structure
 
@@ -174,13 +199,13 @@ Configure your Twilio phone number webhooks:
 │   │   │   └── twilio/    # Voice, SMS, and WebSocket handlers
 │   │   └── shared/        # Database, middleware, errors
 │   └── test/              # API tests
-├── webui/                  # SvelteKit frontend
+├── webui/                 # SvelteKit frontend
 │   ├── src/
 │   │   ├── routes/        # SvelteKit pages
 │   │   └── lib/           # Components and utilities
 │   └── tests/             # UI tests
-├── db/                     # Database initialization scripts
-└── scripts/                # Development scripts
+├── db/                    # Database initialization scripts
+└── scripts/               # Development scripts
 ```
 
 ## Resources
@@ -189,6 +214,7 @@ Configure your Twilio phone number webhooks:
 - [Twilio Real-Time Transcription](https://www.twilio.com/docs/voice/twiml/connect/transcription)
 - [Twilio SMS Tutorial](https://www.twilio.com/docs/messaging/tutorials/how-to-receive-and-reply/node-js)
 - [Venice AI Documentation](https://docs.venice.ai/)
+- [ngrok Documentation](https://ngrok.com/docs)
 
 ## Considerations
 
