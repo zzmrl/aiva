@@ -14,7 +14,7 @@ FROM base AS prerelease
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
-RUN bun test
+RUN bun run test
 RUN bun run type-check
 
 FROM base AS release
