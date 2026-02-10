@@ -1,13 +1,13 @@
 # Automate.It Virtual Assistant (AIVA)
 
-A virtual assistant application that processes phone calls and text messages via Twilio webhooks, featuring AI-powered conversational SMS responses through Venice AI integration.
+A virtual assistant application that processes phone calls and text messages via Twilio webhooks, featuring AI-powered conversational responses through Venice AI integration.
 
 ## Features
 
-- **Voice Call Handling**: Records and transcribes incoming phone calls via Twilio
+- **Conversational Voice Chat**: Real-time bidirectional voice calls with speech-to-text transcription, LLM responses, and text-to-speech audio streaming via WebSocket
 - **Conversational SMS**: AI-powered text message responses using Venice AI LLM with web search capabilities
-- **Message Storage**: PostgreSQL database for persistent message history
-- **Web Interface**: Modern SvelteKit UI to view and manage messages
+- **Message Storage**: PostgreSQL database for persistent conversation history
+- **Web Interface**: Modern SvelteKit UI with chat-style conversation views
 - **RESTful API**: Express/TypeScript backend for message management
 
 ## Architecture
@@ -17,27 +17,28 @@ A virtual assistant application that processes phone calls and text messages via
 1. **API Backend** (`api/`)
    - Express + TypeScript server on Bun runtime
    - Twilio webhook handlers for voice and SMS
+   - WebSocket server for real-time voice streaming
    - Venice AI integration for LLM completions
-   - PostgreSQL database interactions
+   - Text-to-speech for voice responses
 
 2. **Database**
    - PostgreSQL 18 Alpine
    - Message storage with indexed queries
-   - Docker secrets-based credential management
+   - Conversation tracking by phone number
 
 3. **Web UI** (`webui/`)
    - SvelteKit 2 + Tailwind CSS 4 + DaisyUI
    - NGINX-served static build
-   - Real-time message viewing
+   - Chat-style conversation interface
 
 ### Tech Stack
 
 - **Runtime**: Bun
-- **Backend**: Express, TypeScript
+- **Backend**: Express, TypeScript, WebSocket (ws)
 - **Frontend**: SvelteKit 2, Tailwind CSS 4, DaisyUI
 - **Database**: PostgreSQL 18
 - **AI**: Venice AI (OpenAI-compatible API)
-- **Telephony**: Twilio Voice & SMS
+- **Telephony**: Twilio Voice & SMS with Media Streams
 - **Infrastructure**: Docker Compose
 
 ## Requirements
@@ -46,14 +47,7 @@ A virtual assistant application that processes phone calls and text messages via
 - Bun (for local development)
 - Twilio account with phone number
 - Venice AI API key
-
-### Required Secret Files
-
-Create these files in `./secrets/` directory:
-
-- `postgres_password` - Database password
-- `postgres_user` - Database username
-- `venice_api_key` - Venice AI API key
+- Public host URL (ngrok or similar for development)
 
 ## Quick Start
 
@@ -64,7 +58,7 @@ Create these files in `./secrets/` directory:
 docker compose up
 ```
 
-The API will be available at `http://localhost:3000` and the web UI at `http://localhost:8080`.
+The API will be available at `http://localhost:3000` and the web UI at `http://localhost`.
 
 ### Development
 
@@ -127,15 +121,31 @@ Use ngrok or a similar tunneling service to expose your local API for Twilio web
 ngrok http 3000
 ```
 
-Configure your Twilio phone number to use the ngrok URL for voice and SMS webhooks.
+Set the `PUBLIC_HOST` environment variable to your ngrok hostname (without the `https://` prefix):
+
+```bash
+export PUBLIC_HOST=your-subdomain.ngrok.io
+```
+
+Configure your Twilio phone number webhooks:
+- **Voice URL**: `https://your-subdomain.ngrok.io/twilio/voice`
+- **SMS URL**: `https://your-subdomain.ngrok.io/twilio/sms`
 
 ## API Endpoints
 
-- `POST /voice` - Twilio voice webhook handler
-- `POST /voiceTranscribe` - Voice transcription callback
-- `POST /sms` - Twilio SMS webhook handler
-- `GET /messages` - Retrieve all messages
+### Twilio Webhooks
+- `POST /twilio/voice` - Incoming call handler (initiates transcription and WebSocket stream)
+- `POST /twilio/sms` - SMS webhook handler with AI responses
+- `POST /twilio/transcription-events` - Real-time transcription callback
+- `WSS /twilio/stream` - WebSocket for bidirectional audio streaming
+
+### Messages
+- `GET /messages` - List messages (with optional filters)
+- `GET /messages/conversations` - List conversations grouped by phone number
 - `GET /messages/:id` - Get message by ID
+- `POST /messages` - Create a message
+
+### System
 - `GET /health` - Health check
 
 ## Environment Variables
@@ -143,13 +153,10 @@ Configure your Twilio phone number to use the ngrok URL for voice and SMS webhoo
 ### API
 
 - `PORT` - Server port (default: 3000)
-- `NODE_ENV` - Environment (development/production)
-- `DATABASE_HOST` - Database host (default: localhost)
-- `DATABASE_PORT` - Database port (default: 5432)
-- `DATABASE_PASSWORD_FILE` - Path to database password secret
-- `DATABASE_USER_FILE` - Path to database user secret
-- `DATABASE_NAME_FILE` - Path to database name secret
-- `VENICE_API_KEY_FILE` - Path to Venice API key secret
+- `NODE_ENV` - Environment (development/production/test)
+- `DATABASE_URL` - PostgreSQL connection string (e.g., `postgres://user:pass@host:5432/db`)
+- `PUBLIC_HOST` - Public hostname for Twilio webhooks (e.g., `your-app.ngrok.io`)
+- `VENICE_API_KEY` - Venice AI API key
 
 ### Web UI
 
@@ -159,25 +166,27 @@ Configure your Twilio phone number to use the ngrok URL for voice and SMS webhoo
 
 ```
 .
-├── api/                # Express API backend
+├── api/                    # Express API backend
 │   ├── app/
-│   │   ├── entity/    # Database entity functions
-│   │   ├── llm/       # Venice AI client
-│   │   └── routes/    # API route handlers
-│   └── test/          # API tests
-├── webui/             # SvelteKit frontend
+│   │   ├── modules/
+│   │   │   ├── llm/       # Venice AI client and repository
+│   │   │   ├── message/   # Message CRUD operations
+│   │   │   └── twilio/    # Voice, SMS, and WebSocket handlers
+│   │   └── shared/        # Database, middleware, errors
+│   └── test/              # API tests
+├── webui/                  # SvelteKit frontend
 │   ├── src/
-│   │   ├── routes/    # SvelteKit pages
-│   │   └── lib/       # Components and utilities
-│   └── tests/         # UI tests
-├── db/                # Database initialization scripts
-├── secrets/           # Secret files (gitignored)
-└── scripts/           # Development scripts
+│   │   ├── routes/        # SvelteKit pages
+│   │   └── lib/           # Components and utilities
+│   └── tests/             # UI tests
+├── db/                     # Database initialization scripts
+└── scripts/                # Development scripts
 ```
 
 ## Resources
 
-- [Twilio Voice Recording Tutorial](https://www.twilio.com/docs/voice/tutorials/how-to-record-phone-calls/node)
+- [Twilio Media Streams](https://www.twilio.com/docs/voice/media-streams)
+- [Twilio Real-Time Transcription](https://www.twilio.com/docs/voice/twiml/connect/transcription)
 - [Twilio SMS Tutorial](https://www.twilio.com/docs/messaging/tutorials/how-to-receive-and-reply/node-js)
 - [Venice AI Documentation](https://docs.venice.ai/)
 
@@ -185,16 +194,17 @@ Configure your Twilio phone number to use the ngrok URL for voice and SMS webhoo
 
 ### Legal Compliance
 
-Recording voice calls requires legal compliance that varies by jurisdiction. Ensure you:
+Voice transcription and AI-powered responses may have legal requirements that vary by jurisdiction. Ensure you:
 - Implement proper consent mechanisms
-- Follow state/country-specific recording laws
-- Provide clear disclosure to callers
+- Follow applicable privacy and recording laws
+- Provide clear disclosure to callers about AI assistance
 
 ### Cost Management
 
-- Twilio call transcriptions incur per-call costs
+- Twilio real-time transcription incurs per-minute costs
+- Twilio Media Streams are billed per minute
 - Venice AI API usage is metered
-- Consider implementing per-user limits or cost offset strategies
+- Consider implementing usage limits or cost tracking
 
 ## License
 
