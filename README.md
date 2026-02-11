@@ -14,6 +14,19 @@ A virtual assistant application that processes phone calls and text messages via
 
 ### Docker Stack
 
+Services are split across **profiles** so only what you need is built and started:
+
+| Service      | No profile | `--profile dev` | `--profile prod` |
+|--------------|:----------:|:---------------:|:-----------------:|
+| **api**      | x          | x               | x                 |
+| **database** | x          | x               | x                 |
+| webui-dev    |            | x               |                   |
+| ngrok        |            | x               |                   |
+| webui        |            |                 | x                 |
+| nginx        |            |                 | x                 |
+
+#### Production (`--profile prod`)
+
 ```
 ┌──────────────────────────────────────────────────────┐
 │                  nginx (:80/:443)                    │
@@ -36,7 +49,22 @@ A virtual assistant application that processes phone calls and text messages via
     (volume)
 ```
 
-1. **NGINX** (`nginx/`)
+#### Development (`--profile dev`)
+
+```
+  ┌─────────────┐        ┌─────────────┐      ┌──────────┐
+  │  webui-dev  │        │     api     │ ──── │ database │
+  │  (:5173)    │        │  (internal) │      │          │
+  └─────────────┘        └─────────────┘      └──────────┘
+                                ▲
+                                │
+                          ┌─────┴─────┐
+                          │   ngrok   │
+                          │  (:4040)  │
+                          └───────────┘
+```
+
+1. **NGINX** (`nginx/`) — *prod profile*
    - Reverse proxy and static file server
    - Routes API and WebSocket traffic to backend
    - Serves static frontend assets
@@ -48,14 +76,21 @@ A virtual assistant application that processes phone calls and text messages via
    - WebSocket server for real-time voice streaming
    - Venice AI integration for LLM completions
 
-3. **Web UI** (`webui/`)
+3. **Web UI** (`webui/`) — *prod profile*
    - SvelteKit 2 + Tailwind CSS 4 + DaisyUI
-   - Builds static files to shared volume
+   - One-shot container that builds static files to a shared volume
    - Chat-style conversation interface
 
-4. **Database**
+4. **Web UI Dev** (`webui-dev`) — *dev profile*
+   - Runs the Vite dev server with HMR on port 5173
+   - Bind-mounts source for live editing
+
+5. **Database**
    - PostgreSQL 18 Alpine
    - Message storage with indexed queries
+
+6. **ngrok** — *dev profile*
+   - Tunnels directly to the API for Twilio webhook testing
 
 ### Tech Stack
 
@@ -81,13 +116,23 @@ A virtual assistant application that processes phone calls and text messages via
 ### Production
 
 ```bash
-# Start complete stack
-docker compose up
+# Start complete stack (api, database, webui build, nginx)
+docker compose --profile prod up
 ```
 
-Everything is available at `http://localhost` - nginx routes to the appropriate service.
+Everything is available at `http://localhost` — nginx routes to the appropriate service.
 
-### Development
+### Development (containerized)
+
+```bash
+# Start dev stack (api, database, webui-dev with HMR, ngrok)
+docker compose --profile dev up
+```
+
+- Web UI dev server: `http://localhost:5173`
+- ngrok inspector: `http://localhost:4040`
+
+### Development (local)
 
 Requires Bun and Docker installed.
 
@@ -142,7 +187,7 @@ bun test:e2e         # E2E tests (Playwright)
 
 ## Testing Webhooks
 
-ngrok is included in the Docker Compose stack for development. To use it:
+ngrok is included in the dev profile and tunnels directly to the API for Twilio webhook delivery.
 
 ### 1. Set up ngrok account
 
@@ -154,12 +199,13 @@ ngrok is included in the Docker Compose stack for development. To use it:
 
 ```bash
 PUBLIC_HOST=your-static-domain.ngrok-free.app
+NGROK_AUTHTOKEN=your-auth-token
 ```
 
 ### 3. Run with dev profile
 
 ```bash
-# Start full stack with ngrok tunnel
+# Start dev stack (includes ngrok)
 docker compose --profile dev up
 
 # Or start just ngrok alongside existing services
