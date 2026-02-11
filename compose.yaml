@@ -42,13 +42,26 @@ services:
 
   webui:
     build: ./webui
+    profiles: [prod]
     restart: "no"
-    stop_grace_period: 1s
     volumes:
       - static_files:/output
 
+  webui-dev:
+    build:
+      context: ./webui
+      target: dev
+    profiles: [dev]
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./webui:/app
+      - /app/node_modules
+
   nginx:
     build: ./nginx
+    profiles: [prod]
     restart: unless-stopped
     ports:
       - "80:80"
@@ -57,20 +70,22 @@ services:
       - static_files:/usr/share/nginx/html:ro
       - nginx_logs:/var/log/nginx
     depends_on:
-      - api
-      - webui
+      api:
+        condition: service_started
+      webui:
+        condition: service_completed_successfully
 
   ngrok:
     image: ngrok/ngrok:alpine
     profiles: [dev]
     restart: unless-stopped
-    command: http http://nginx:80 --url ${PUBLIC_HOST:?Static ngrok domain}
+    command: http http://api:3274 --url ${PUBLIC_HOST:?Static ngrok domain}
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?Ngrok auth token found in dashboard}
     ports:
       - "4040:4040"
     depends_on:
-      - nginx
+      - api
 
 volumes:
   postgres_data:
