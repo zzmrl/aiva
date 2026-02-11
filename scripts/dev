@@ -9,7 +9,7 @@ docker compose up -d database
 
 set -a && source ../.env && set +a
 export NODE_ENV="development"
-export PUBLIC_HOST="${PUBLIC_HOST:-localhost:3000}"
+export PUBLIC_HOST="${PUBLIC_HOST:-localhost:3274}"
 
 # Run both dev servers in parallel
 (cd api && bun --bun dev) &

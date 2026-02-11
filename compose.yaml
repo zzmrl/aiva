@@ -43,6 +43,7 @@ services:
   webui:
     build: ./webui
     restart: "no"
+    stop_grace_period: 1s
     volumes:
       - static_files:/output
 
@@ -60,11 +61,12 @@ services:
       - webui
 
   ngrok:
-    image: ngrok/ngrok:latest
+    image: ngrok/ngrok:alpine
     profiles: [dev]
-    command: http nginx:80 --url ${PUBLIC_HOST:?Static ngrok domain}
+    restart: unless-stopped
+    command: http http://nginx:80 --url ${PUBLIC_HOST:?Static ngrok domain}
     environment:
-      NGROK_AUTHTOKEN: $NGROK_AUTHTOKEN
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?Ngrok auth token found in dashboard}
     ports:
       - "4040:4040"
     depends_on:
