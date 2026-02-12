@@ -30,6 +30,7 @@ const envSchema = z.object({
   PUBLIC_HOST: z.string().min(1),
   VENICE_API_KEY: z.string().min(1),
   DATABASE_URL: z.url(),
+  TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse(environment);
@@ -40,6 +41,12 @@ if (!parsed.success) {
 }
 
 const config = parsed.data;
+
+if (!config.TWILIO_AUTH_TOKEN) {
+  console.warn(
+    "TWILIO_AUTH_TOKEN is not set — Twilio webhook signature validation is disabled",
+  );
+}
 
 export type AppConfig = typeof config;
 
