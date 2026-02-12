@@ -2,6 +2,7 @@
   import { onMount, tick } from 'svelte';
   import type { Message } from './api';
   import ChatBubble from './ChatBubble.svelte';
+  import { formatPhoneNumber } from './utils';
 
   let {
     messages,
@@ -14,16 +15,6 @@
   } = $props();
 
   let messagesContainer: HTMLDivElement | undefined = $state();
-
-  function formatPhoneNumber(phone: string): string {
-    const cleaned = phone.replace(/\D/g, '');
-    const match = cleaned.match(/^(1|)?(\d{3})(\d{3})(\d{4})$/);
-    if (match) {
-      const intlCode = match[1] ? '+1 ' : '';
-      return `${intlCode}(${match[2]}) ${match[3]}-${match[4]}`;
-    }
-    return phone;
-  }
 
   async function scrollToBottom() {
     await tick();
