@@ -58,7 +58,13 @@ export function attachWebSocket(server: Server): void {
     debug("WebSocket connection established");
 
     ws.on("message", async (data) => {
-      const msg: StreamEvent = JSON.parse(data.toString());
+      let msg: StreamEvent;
+      try {
+        msg = JSON.parse(data.toString());
+      } catch (error) {
+        debug("Failed to parse WebSocket message: %O", error);
+        return;
+      }
 
       switch (msg.event) {
         case "connected":

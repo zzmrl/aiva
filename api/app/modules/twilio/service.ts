@@ -1,3 +1,4 @@
+import createDebug from "debug";
 import * as messageService from "../message/service";
 import { streamCompletion } from "../llm/repository";
 import * as sessions from "./sessions";
@@ -5,6 +6,8 @@ import { textToSpeech } from "./tts";
 import { pcmToMulawChunks } from "./audio";
 import { sendAudio, clearAudio } from "./stream";
 import twilio from "twilio";
+
+const debug = createDebug("api:twilio:service");
 
 export function handleIncomingCall(
   host: string,
@@ -35,9 +38,17 @@ export async function handleIncomingSms(
   from: string,
   body: string,
 ): Promise<string> {
-  const message = await messageService.handleInboundMessage(to, from, body);
   const twiml = new twilio.twiml.MessagingResponse();
-  twiml.message(message);
+
+  try {
+    const message = await messageService.handleInboundMessage(to, from, body);
+    twiml.message(message);
+  } catch (error) {
+    debug("Failed to handle SMS from %s: %O", from, error);
+    twiml.message(
+      "Sorry, I'm having trouble right now. Please try again later.",
+    );
+  }
 
   return twiml.toString();
 }
@@ -60,30 +71,34 @@ export async function handleTranscriptionEvent(
     return;
   }
 
-  let fullResponse = "";
-  let firstChunk = true;
-  for await (const chunk of streamCompletion(messages)) {
-    fullResponse += chunk;
-    if (firstChunk && fullResponse.includes(".")) {
-      firstChunk = false;
-      clearAudio(callSid);
-      const { pcm, sampleRate } = await textToSpeech(fullResponse);
-      const chunks = pcmToMulawChunks(pcm, sampleRate);
-      sendAudio(callSid, chunks);
-    }
-  }
-
-  if (fullResponse) {
-    if (firstChunk) {
-      clearAudio(callSid);
-      const { pcm, sampleRate } = await textToSpeech(fullResponse);
-      const chunks = pcmToMulawChunks(pcm, sampleRate);
-      sendAudio(callSid, chunks);
+  try {
+    let fullResponse = "";
+    let firstChunk = true;
+    for await (const chunk of streamCompletion(messages)) {
+      fullResponse += chunk;
+      if (firstChunk && fullResponse.includes(".")) {
+        firstChunk = false;
+        clearAudio(callSid);
+        const { pcm, sampleRate } = await textToSpeech(fullResponse);
+        const chunks = pcmToMulawChunks(pcm, sampleRate);
+        sendAudio(callSid, chunks);
+      }
     }
 
-    sessions.appendMessage(callSid, {
-      role: "assistant",
-      content: fullResponse,
-    });
+    if (fullResponse) {
+      if (firstChunk) {
+        clearAudio(callSid);
+        const { pcm, sampleRate } = await textToSpeech(fullResponse);
+        const chunks = pcmToMulawChunks(pcm, sampleRate);
+        sendAudio(callSid, chunks);
+      }
+
+      sessions.appendMessage(callSid, {
+        role: "assistant",
+        content: fullResponse,
+      });
+    }
+  } catch (error) {
+    debug("Failed to generate voice response for callSid=%s: %O", callSid, error);
   }
 }
