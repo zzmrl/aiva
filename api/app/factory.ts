@@ -7,6 +7,7 @@ import cors from "cors";
 import helmet from "helmet";
 import pino from "pino-http";
 import { AppError } from "./shared/errors";
+import { generalLimiter, twilioLimiter } from "./shared/rateLimit";
 import { router as messageRouter } from "./modules/message";
 import { router as twilioRouter } from "./modules/twilio";
 
@@ -27,12 +28,15 @@ const logger = () =>
 export function createApp() {
   const app = express();
 
+  app.set("trust proxy", 1);
+
   app.use(
     helmet(),
     cors(),
+    generalLimiter,
     logger(),
-    express.json(),
-    express.urlencoded({ extended: true }),
+    express.json({ limit: "1mb" }),
+    express.urlencoded({ extended: true, limit: "1mb" }),
   );
 
   app.get("/health", (_req, res) => {
@@ -40,7 +44,7 @@ export function createApp() {
   });
 
   app.use("/messages", messageRouter);
-  app.use("/twilio", twilioRouter);
+  app.use("/twilio", twilioLimiter, twilioRouter);
 
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     res.log.error(err.stack);

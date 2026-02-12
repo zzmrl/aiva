@@ -1,7 +1,13 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it, afterEach, beforeEach } from "bun:test";
 import * as sessions from "../app/modules/twilio/sessions";
 
 const mockWs = {
+  send: () => {},
+  on: () => {},
+  close: () => {},
+} as unknown as import("ws").WebSocket;
+
+const mockWs2 = {
   send: () => {},
   on: () => {},
   close: () => {},
@@ -12,6 +18,11 @@ describe("sessions", () => {
     // Clean up any existing sessions
     sessions.remove("test-call-1");
     sessions.remove("test-call-2");
+    sessions.remove("test-call-3");
+  });
+
+  afterEach(() => {
+    sessions.stopCleanup();
   });
 
   describe("create and get", () => {
@@ -113,6 +124,139 @@ describe("sessions", () => {
     it("should return undefined when removing non-existent session", () => {
       const removed = sessions.remove("non-existent");
       expect(removed).toBeUndefined();
+    });
+  });
+
+  describe("removeByWs", () => {
+    it("should remove and return the session matching the WebSocket", () => {
+      sessions.create("test-call-1", {
+        ws: mockWs,
+        streamSid: "stream-1",
+        callSid: "test-call-1",
+        from: "+15551234567",
+        to: "+15559876543",
+        messages: [],
+      });
+
+      const removed = sessions.removeByWs(mockWs);
+      expect(removed).toBeDefined();
+      expect(removed?.callSid).toBe("test-call-1");
+      expect(sessions.get("test-call-1")).toBeUndefined();
+    });
+
+    it("should return undefined when no session matches the WebSocket", () => {
+      const removed = sessions.removeByWs(mockWs2);
+      expect(removed).toBeUndefined();
+    });
+
+    it("should only remove the matching session", () => {
+      sessions.create("test-call-1", {
+        ws: mockWs,
+        streamSid: "stream-1",
+        callSid: "test-call-1",
+        from: "+15551234567",
+        to: "+15559876543",
+        messages: [],
+      });
+      sessions.create("test-call-2", {
+        ws: mockWs2,
+        streamSid: "stream-2",
+        callSid: "test-call-2",
+        from: "+15551111111",
+        to: "+15552222222",
+        messages: [],
+      });
+
+      sessions.removeByWs(mockWs);
+      expect(sessions.get("test-call-1")).toBeUndefined();
+      expect(sessions.get("test-call-2")).toBeDefined();
+    });
+  });
+
+  describe("cleanup", () => {
+    it("should remove sessions older than 30 minutes", () => {
+      sessions.create("test-call-1", {
+        ws: mockWs,
+        streamSid: "stream-1",
+        callSid: "test-call-1",
+        from: "+15551234567",
+        to: "+15559876543",
+        messages: [],
+      });
+
+      // Manually backdate the createdAt
+      const session = sessions.get("test-call-1");
+      expect(session).toBeDefined();
+      if (!session) return;
+      session.createdAt = Date.now() - 31 * 60 * 1000;
+
+      const removed = sessions.cleanup();
+      expect(removed).toBe(1);
+      expect(sessions.get("test-call-1")).toBeUndefined();
+    });
+
+    it("should not remove sessions younger than 30 minutes", () => {
+      sessions.create("test-call-1", {
+        ws: mockWs,
+        streamSid: "stream-1",
+        callSid: "test-call-1",
+        from: "+15551234567",
+        to: "+15559876543",
+        messages: [],
+      });
+
+      const removed = sessions.cleanup();
+      expect(removed).toBe(0);
+      expect(sessions.get("test-call-1")).toBeDefined();
+    });
+
+    it("should only remove expired sessions", () => {
+      sessions.create("test-call-1", {
+        ws: mockWs,
+        streamSid: "stream-1",
+        callSid: "test-call-1",
+        from: "+15551234567",
+        to: "+15559876543",
+        messages: [],
+      });
+      sessions.create("test-call-2", {
+        ws: mockWs2,
+        streamSid: "stream-2",
+        callSid: "test-call-2",
+        from: "+15551111111",
+        to: "+15552222222",
+        messages: [],
+      });
+
+      // Only expire the first session
+      const session = sessions.get("test-call-1");
+      expect(session).toBeDefined();
+      if (!session) return;
+      session.createdAt = Date.now() - 31 * 60 * 1000;
+
+      const removed = sessions.cleanup();
+      expect(removed).toBe(1);
+      expect(sessions.get("test-call-1")).toBeUndefined();
+      expect(sessions.get("test-call-2")).toBeDefined();
+    });
+  });
+
+  describe("createdAt", () => {
+    it("should automatically set createdAt on create", () => {
+      const before = Date.now();
+      sessions.create("test-call-1", {
+        ws: mockWs,
+        streamSid: "stream-1",
+        callSid: "test-call-1",
+        from: "+15551234567",
+        to: "+15559876543",
+        messages: [],
+      });
+      const after = Date.now();
+
+      const session = sessions.get("test-call-1");
+      expect(session?.createdAt).toBeGreaterThanOrEqual(before);
+      expect(session?.createdAt).toBeLessThanOrEqual(after);
     });
   });
 });

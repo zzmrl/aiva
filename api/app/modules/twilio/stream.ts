@@ -112,6 +112,12 @@ export function attachWebSocket(server: Server): void {
 
     ws.on("close", () => {
       debug("WebSocket connection closed");
+      sessions.removeByWs(ws);
+    });
+
+    ws.on("error", (err) => {
+      debug("WebSocket error: %O", err);
+      sessions.removeByWs(ws);
     });
   });
 }
