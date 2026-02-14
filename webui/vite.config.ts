@@ -5,6 +5,19 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
+  server: {
+    allowedHosts: ['localhost', '127.0.0.1', process.env.PUBLIC_HOST].filter(
+      (h) => h !== undefined,
+    ),
+    proxy: {
+      '/messages': 'http://api:3274',
+      '/health': 'http://api:3274',
+      '/twilio': {
+        target: 'http://api:3274',
+        ws: true,
+      },
+    },
+  },
   test: {
     expect: { requireAssertions: true },
     projects: [
