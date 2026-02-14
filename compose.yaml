@@ -29,14 +29,10 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?password for database user}
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: >
-        pg_isready
-        -U $$POSTGRES_USER
-        -d $$POSTGRES_USER
+      test: pg_isready -U $$POSTGRES_USER -d $$POSTGRES_USER
       interval: 30s
-      start_period: 5s
+      start_period: 3s
       timeout: 10s
       retries: 5
 

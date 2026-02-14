@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")/.." || exit 1
+
+set -a && source .env && set +a
+
+# Rewrite hostname to "database" for Docker network and disable SSL
+DOCKER_DATABASE_URL=$(echo "$DATABASE_URL" | sed 's|@[^:/]*|@database|')
+DOCKER_DATABASE_URL="${DOCKER_DATABASE_URL}?sslmode=disable"
+
+docker run --rm \
+    --network aiva_default \
+    -v "$(pwd)/db:/db" \
+    -e "DATABASE_URL=${DOCKER_DATABASE_URL}" \
+    ghcr.io/amacneil/dbmate --no-dump-schema "$@"
