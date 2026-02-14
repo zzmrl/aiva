@@ -1,7 +1,10 @@
 import { sql } from "../../shared/database";
 import type { Conversation, Message } from "./model";
 
-export type CreateMessageInput = Pick<Message, "receiver" | "sender" | "body" | "direction">;
+export type CreateMessageInput = Pick<
+  Message,
+  "receiver" | "sender" | "body" | "direction"
+>;
 
 /**
  * Insert a new message
@@ -77,8 +80,8 @@ export async function findConversation(
   return sql`
     SELECT *
     FROM messages
-    WHERE (sender = ${phone1} AND receiver = ${phone2})
-       OR (sender = ${phone2} AND receiver = ${phone1})
+    WHERE ((sender = ${phone1} AND receiver = ${phone2})
+       OR (sender = ${phone2} AND receiver = ${phone1}))
     ${ageFilter}
     ORDER BY created ASC
   `;
