@@ -9,6 +9,9 @@
 
 <svelte:head>
   <link rel="icon" href={favicon} />
+  <script>
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
+  </script>
 </svelte:head>
 
 <div class="h-screen flex flex-col">

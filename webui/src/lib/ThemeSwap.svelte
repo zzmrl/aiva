@@ -1,5 +1,17 @@
+<script lang="ts">
+  import { browser } from '$app/environment';
+
+  const STORAGE_KEY = 'theme';
+
+  let isDark = $state(browser && localStorage.getItem(STORAGE_KEY) === 'dark');
+
+  $effect(() => {
+    localStorage.setItem(STORAGE_KEY, isDark ? 'dark' : 'light');
+  });
+</script>
+
 <label class="swap swap-rotate">
-  <input type="checkbox" class="theme-controller" value="dark" />
+  <input type="checkbox" class="theme-controller" value="dark" bind:checked={isDark} />
   <!-- sun icon -->
   <svg class="swap-off h-6 w-6 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
     <path
