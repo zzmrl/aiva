@@ -1,7 +1,7 @@
 import { WebSocketServer } from "ws";
 import type { Server } from "http";
 import createDebug from "debug";
-import * as sessions from "./sessions";
+import * as sessionStore from "./sessionStore";
 import { repository as messageRepository } from "../message";
 
 const debug = createDebug("api:twilio:stream");
@@ -74,7 +74,7 @@ export function attachWebSocket(server: Server): void {
         case "start": {
           const { callSid, streamSid, customParameters } = msg.start;
           debug("Stream started: callSid=%s streamSid=%s", callSid, streamSid);
-          sessions.create(callSid, {
+          sessionStore.create(callSid, {
             ws,
             streamSid,
             callSid,
@@ -92,7 +92,7 @@ export function attachWebSocket(server: Server): void {
         case "stop": {
           const { callSid } = msg.stop;
           debug("Stream stopped: callSid=%s", callSid);
-          const session = sessions.remove(callSid);
+          const session = sessionStore.remove(callSid);
 
           if (session && session.messages.length > 0) {
             for (const message of session.messages) {
@@ -112,18 +112,18 @@ export function attachWebSocket(server: Server): void {
 
     ws.on("close", () => {
       debug("WebSocket connection closed");
-      sessions.removeByWs(ws);
+      sessionStore.removeByWs(ws);
     });
 
     ws.on("error", (err) => {
       debug("WebSocket error: %O", err);
-      sessions.removeByWs(ws);
+      sessionStore.removeByWs(ws);
     });
   });
 }
 
 export function sendAudio(callSid: string, base64Chunks: string[]): void {
-  const session = sessions.get(callSid);
+  const session = sessionStore.get(callSid);
   if (!session) return;
 
   for (const payload of base64Chunks) {
@@ -138,7 +138,7 @@ export function sendAudio(callSid: string, base64Chunks: string[]): void {
 }
 
 export function clearAudio(callSid: string): void {
-  const session = sessions.get(callSid);
+  const session = sessionStore.get(callSid);
   if (!session) return;
 
   session.ws.send(

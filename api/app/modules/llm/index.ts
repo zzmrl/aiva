@@ -1,1 +1,1 @@
-export * as repository from "./repository";
+export * as completions from "./completions";

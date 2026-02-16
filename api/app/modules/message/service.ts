@@ -1,5 +1,5 @@
 import { NotFoundError } from "../../shared/errors";
-import { createCompletion } from "../llm/repository";
+import { createCompletion } from "../llm/completions";
 import { repository, type Conversation, type Message } from ".";
 
 export async function create(
@@ -16,7 +16,7 @@ export async function list(
   return repository.findMany(filter);
 }
 
-export async function findById(id: number): Promise<Message> {
+export async function getById(id: number): Promise<Message> {
   const message = await repository.findById(id);
   if (!message) {
     throw new NotFoundError(`Message with id ${id} not found`);
@@ -24,7 +24,7 @@ export async function findById(id: number): Promise<Message> {
   return message;
 }
 
-export async function getConversation(
+export async function listConversation(
   phone1: string,
   phone2: string,
   minutesAgo?: number,
@@ -36,7 +36,7 @@ export async function listConversations(): Promise<Conversation[]> {
   return repository.findConversations();
 }
 
-export async function handleInboundMessage(
+export async function replyToMessage(
   to: string,
   from: string,
   body: string,

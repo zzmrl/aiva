@@ -9,7 +9,7 @@ export const list: RequestHandler = async (req, res) => {
 
 export const getById: RequestHandler = async (req, res) => {
   const id = Number(req.params.id);
-  const message = await service.findById(id);
+  const message = await service.getById(id);
   res.json(message);
 };
 

@@ -44,7 +44,7 @@ mock.module("../app/modules/llm/client", () => ({
   default: {},
 }));
 
-mock.module("../app/modules/llm/repository", () => ({
+mock.module("../app/modules/llm/completions", () => ({
   createCompletion: mockCreateCompletion,
   streamCompletion: mock(async function* () {}),
 }));

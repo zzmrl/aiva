@@ -1,5 +1,5 @@
 import type { WebSocket } from "ws";
-import type { CompletionMessage } from "../llm/repository";
+import type { CompletionMessage } from "../llm/completions";
 
 export type StreamSession = {
   ws: WebSocket;

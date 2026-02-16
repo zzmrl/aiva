@@ -1,7 +1,7 @@
 import createDebug from "debug";
 import * as messageService from "../message/service";
-import { streamCompletion } from "../llm/repository";
-import * as sessions from "./sessions";
+import { streamCompletion } from "../llm/completions";
+import * as sessionStore from "./sessionStore";
 import { textToSpeech } from "./tts";
 import { pcmToMulawChunks } from "./audio";
 import { sendAudio, clearAudio } from "./stream";
@@ -41,7 +41,7 @@ export async function handleIncomingSms(
   const twiml = new twilio.twiml.MessagingResponse();
 
   try {
-    const message = await messageService.handleInboundMessage(to, from, body);
+    const message = await messageService.replyToMessage(to, from, body);
     twiml.message(message);
   } catch (error) {
     debug("Failed to handle SMS from %s: %O", from, error);
@@ -62,7 +62,7 @@ export async function handleTranscriptionEvent(
     return;
   }
 
-  const messages = sessions.appendMessage(callSid, {
+  const messages = sessionStore.appendMessage(callSid, {
     role: "user",
     content: text,
   });
@@ -93,7 +93,7 @@ export async function handleTranscriptionEvent(
         sendAudio(callSid, chunks);
       }
 
-      sessions.appendMessage(callSid, {
+      sessionStore.appendMessage(callSid, {
         role: "assistant",
         content: fullResponse,
       });
