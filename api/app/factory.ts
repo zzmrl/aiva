@@ -7,7 +7,7 @@ import cors from "cors";
 import helmet from "helmet";
 import pino from "pino-http";
 import { AppError } from "./shared/errors";
-import { generalLimiter, twilioLimiter } from "./shared/rateLimit";
+import { generalLimiter, twilioLimiter } from "./shared/middleware";
 import { router as messageRouter } from "./modules/message";
 import { router as twilioRouter } from "./modules/twilio";
 
