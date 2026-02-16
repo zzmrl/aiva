@@ -1,9 +1,13 @@
 import type { RequestHandler } from "express";
 import config from "../../config";
 import * as service from "./service";
-import type { TranscriptionRequest } from "./validation";
+import type {
+  TranscriptionRequest,
+  VoiceWebhookRequest,
+  SmsWebhookRequest,
+} from "./validation";
 
-export const voice: RequestHandler = (req, res) => {
+export const voice: RequestHandler = (req: VoiceWebhookRequest, res) => {
   const response = service.handleIncomingCall(
     config.PUBLIC_HOST,
     req.body.From,
@@ -24,7 +28,7 @@ export const transcriptionEvents: RequestHandler = async (
   );
 };
 
-export const sms: RequestHandler = async (req, res) => {
+export const sms: RequestHandler = async (req: SmsWebhookRequest, res) => {
   const response = await service.handleIncomingSms(
     req.body.To,
     req.body.From,
