@@ -1,5 +1,3 @@
-import { PUBLIC_API_HOST } from '$env/static/public';
-
 export type Direction = 'inbound' | 'outbound';
 
 export type Message = {
@@ -20,10 +18,8 @@ export type Conversation = {
   contact_phone: string;
 };
 
-const apiHost = PUBLIC_API_HOST || '';
-
 export async function getMessages(): Promise<Message[]> {
-  const response = await fetch(`${apiHost}/messages`);
+  const response = await fetch(`/messages`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch messages: ${response.status}`);
@@ -33,7 +29,7 @@ export async function getMessages(): Promise<Message[]> {
 }
 
 export async function getConversations(): Promise<Conversation[]> {
-  const response = await fetch(`${apiHost}/messages/conversations`);
+  const response = await fetch(`/messages/conversations`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch conversations: ${response.status}`);
@@ -43,7 +39,7 @@ export async function getConversations(): Promise<Conversation[]> {
 }
 
 export async function getMessagesByPhone(phone: string): Promise<Message[]> {
-  const response = await fetch(`${apiHost}/messages?phone=${encodeURIComponent(phone)}`);
+  const response = await fetch(`/messages?phone=${encodeURIComponent(phone)}`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch messages: ${response.status}`);
