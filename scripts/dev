@@ -4,13 +4,10 @@ set -e
 
 cd "$(dirname "$0")/.." || exit 1
 
-# Start database
 docker compose up -d database
 
-set -a && source ../.env && set +a
-
-# Run migrations
 scripts/migrate up
+set -a && source .env && set +a
 export NODE_ENV="development"
 export PUBLIC_HOST="${PUBLIC_HOST:-localhost:3274}"
 
