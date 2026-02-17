@@ -10,17 +10,21 @@ RUN mkdir -p /temp/prod
 COPY package.json bun.lock /temp/prod/
 RUN cd /temp/prod && bun install --frozen-lockfile --production
 
-FROM base AS prerelease
+FROM base AS dev
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
+CMD ["run", "dev"]
 
-RUN bun run test
+FROM dev AS test
+RUN NODE_ENV=test bun run test
 RUN bun run type-check
 
 FROM base AS release
 COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease . .
+COPY app/ app/
+COPY tsconfig.json package.json ./
 
 USER bun
 EXPOSE 3274
-ENTRYPOINT ["bun", "run", "start"]
+ENTRYPOINT ["bun"]
+CMD ["run", "start"]

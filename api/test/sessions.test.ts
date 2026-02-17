@@ -1,5 +1,5 @@
 import { describe, expect, it, afterEach, beforeEach } from "bun:test";
-import * as sessions from "../modules/twilio/sessionStore";
+import * as sessions from "../app/modules/twilio/sessionStore";
 
 const mockWs = {
   send: () => {},

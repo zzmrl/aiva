@@ -4,20 +4,20 @@
   "private": true,
   "type": "module",
   "description": "Automate.It Virtual Assistant API",
-  "main": "index.ts",
+  "main": "app/index.ts",
   "exports": {
-    ".": "./index.ts",
-    "./config": "./config.ts",
-    "./server": "./server.ts"
+    ".": "./app/index.ts",
+    "./config": "./app/config.ts",
+    "./server": "./app/server.ts"
   },
   "scripts": {
     "build": "tsc",
-    "start": "bun --sql-preconnect index.ts",
+    "start": "bun --sql-preconnect app/index.ts",
     "debug": "DEBUG=api bun dev",
-    "dev": "bun --watch run index.ts",
+    "dev": "bun --watch run app/index.ts",
     "test": "VENICE_API_KEY=test-key bun test",
     "test:watch": "bun run test --watch",
-    "lint": "eslint modules shared --ext .ts",
+    "lint": "eslint app/modules app/shared --ext .ts",
     "type-check": "tsc --noEmit"
   },
   "keywords": [],

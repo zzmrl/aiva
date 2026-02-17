@@ -2,24 +2,33 @@ name: aiva
 services:
   api:
     build: ./api
-    develop:
-      watch:
-        - path: ./api
-          action: sync+restart
-          target: /api
-          initial_sync: true
+    profiles: [prod]
     restart: unless-stopped
-    expose:
+    expose: &api-expose
       - "3274"
-    environment:
+    environment: &api-environment
       PORT: 3274
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL:?Database connection string}
       PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
       VENICE_API_KEY: ${VENICE_API_KEY:?Venice API key found in settings}
-    depends_on:
+    depends_on: &api-depends_on
       database:
         condition: service_healthy
+
+  api-dev:
+    build:
+      context: ./api
+      target: dev
+    profiles: [dev]
+    restart: unless-stopped
+    expose: *api-expose
+    environment:
+      <<: *api-environment
+      NODE_ENV: development
+    depends_on: *api-depends_on
+    volumes:
+      - ./api:/api
 
   database:
     image: postgres:18-alpine
@@ -57,7 +66,7 @@ services:
       - ./webui:/app
       - /app/node_modules
     depends_on:
-      api:
+      api-dev:
         condition: service_started
 
   nginx:
@@ -80,13 +89,13 @@ services:
     image: ngrok/ngrok:alpine
     profiles: [dev]
     restart: unless-stopped
-    command: http http://api:3274 --url ${PUBLIC_HOST:?Static ngrok domain}
+    command: http http://api-dev:3274 --url ${PUBLIC_HOST:?Static ngrok domain}
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?Ngrok auth token found in dashboard}
     ports:
       - "4040:4040"
     depends_on:
-      - api
+      - api-dev
 
 volumes:
   postgres_data:

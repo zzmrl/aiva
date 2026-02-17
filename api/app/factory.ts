@@ -13,7 +13,7 @@ import { router as twilioRouter } from "./modules/twilio";
 
 const logger = () =>
   pino(
-    process.stdout.isTTY
+    process.env.NODE_ENV === "development"
       ? {
           transport: {
             target: "pino-pretty",

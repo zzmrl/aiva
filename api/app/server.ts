@@ -9,6 +9,7 @@ const app = createApp();
 
 const server = app.listen(config.PORT, () => {
   console.info(`Server is listening on port ${config.PORT}`);
+  console.info(`Environment: ${config.NODE_ENV}`);
 });
 
 stream.attachWebSocket(server);
