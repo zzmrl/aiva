@@ -3,7 +3,7 @@ import {
   linearToMulaw,
   downsample,
   pcmToMulawChunks,
-} from "../app/modules/twilio/audio";
+} from "../modules/twilio/audio";
 
 describe("linearToMulaw", () => {
   it("should encode silence (0) to mulaw", () => {

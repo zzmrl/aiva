@@ -4,9 +4,9 @@ services:
     build: ./api
     develop:
       watch:
-        - path: ./api/app
+        - path: ./api
           action: sync+restart
-          target: /api/app
+          target: /api
           initial_sync: true
     restart: unless-stopped
     expose:

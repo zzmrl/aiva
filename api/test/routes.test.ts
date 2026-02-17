@@ -1,5 +1,5 @@
 import { describe, expect, it, mock, beforeEach, afterAll } from "bun:test";
-import type { Message, CreateMessageInput } from "../app/modules/message";
+import type { Message, CreateMessageInput } from "../modules/message";
 
 const mockCreate = mock(
   (_input: CreateMessageInput): Promise<Message> =>
@@ -18,7 +18,7 @@ const mockSmsCreateCompletion = mock((_messages: unknown[]) =>
   Promise.resolve("Mocked text response"),
 );
 
-mock.module("../app/modules/message/repository", () => ({
+mock.module("../modules/message/repository", () => ({
   create: mockCreate,
   findMany: mockFindMany,
   findConversation: mockFindConversation,
@@ -26,11 +26,11 @@ mock.module("../app/modules/message/repository", () => ({
   getMessagesByPhone: mock(() => Promise.resolve([])),
 }));
 
-mock.module("../app/db", () => ({
+mock.module("../db", () => ({
   sql: mock(() => Promise.resolve([])),
 }));
 
-mock.module("../app/config", () => ({
+mock.module("../config", () => ({
   default: {
     NODE_ENV: "test",
     PORT: 3000,
@@ -40,11 +40,11 @@ mock.module("../app/config", () => ({
   },
 }));
 
-mock.module("../app/modules/llm/client", () => ({
+mock.module("../modules/llm/client", () => ({
   default: {},
 }));
 
-mock.module("../app/modules/llm/completions", () => ({
+mock.module("../modules/llm/completions", () => ({
   defaultCompletion: {
     create: mock(() => Promise.resolve("")),
     stream: mock(async function* () {}),
@@ -59,19 +59,19 @@ mock.module("../app/modules/llm/completions", () => ({
   })),
 }));
 
-mock.module("../app/modules/twilio/stream", () => ({
+mock.module("../modules/twilio/stream", () => ({
   attachWebSocket: mock(() => {}),
   sendAudio: mock(() => {}),
   clearAudio: mock(() => {}),
 }));
 
-mock.module("../app/modules/twilio/tts", () => ({
+mock.module("../modules/twilio/tts", () => ({
   textToSpeech: mock(() =>
     Promise.resolve({ pcm: Buffer.alloc(0), sampleRate: 24000 }),
   ),
 }));
 
-const { createApp } = await import("../app");
+const { createApp } = await import("../factory");
 
 const app = createApp();
 

@@ -19,8 +19,7 @@ RUN bun run type-check
 
 FROM base AS release
 COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /api/app app
-COPY --from=prerelease /api/package.json /api/index.ts ./
+COPY --from=prerelease . .
 
 USER bun
 EXPOSE 3274

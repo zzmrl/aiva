@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { config } from "aiva-api/app";
+import config from "../../config";
 
 const client = new OpenAI({
   apiKey: config.VENICE_API_KEY,
