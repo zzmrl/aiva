@@ -1,6 +1,6 @@
 import createDebug from "debug";
 import * as messageService from "../message/service";
-import { streamCompletion } from "../llm/completions";
+import { defaultCompletion } from "../llm/completions";
 import * as sessionStore from "./sessionStore";
 import { textToSpeech } from "./tts";
 import { pcmToMulawChunks } from "./audio";
@@ -74,7 +74,7 @@ export async function handleTranscriptionEvent(
   try {
     let fullResponse = "";
     let firstChunk = true;
-    for await (const chunk of streamCompletion(messages)) {
+    for await (const chunk of defaultCompletion.stream(messages)) {
       fullResponse += chunk;
       if (firstChunk && fullResponse.includes(".")) {
         firstChunk = false;
@@ -99,6 +99,10 @@ export async function handleTranscriptionEvent(
       });
     }
   } catch (error) {
-    debug("Failed to generate voice response for callSid=%s: %O", callSid, error);
+    debug(
+      "Failed to generate voice response for callSid=%s: %O",
+      callSid,
+      error,
+    );
   }
 }

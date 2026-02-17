@@ -1,5 +1,5 @@
 import { NotFoundError } from "../../shared/errors";
-import { createCompletion } from "../llm/completions";
+import { smsCompletion } from "../llm/completions";
 import { repository, type Conversation, type Message } from ".";
 
 export async function create(
@@ -48,7 +48,7 @@ export async function replyToMessage(
     direction: "inbound",
   });
   const conversation = await repository.findConversation(from, to, 30);
-  const llmResponse = await createCompletion(
+  const llmResponse = await smsCompletion.create(
     conversation.map((msg) => ({
       role: msg.direction === "outbound" ? "assistant" : "user",
       content: msg.body,

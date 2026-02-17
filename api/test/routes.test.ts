@@ -14,7 +14,7 @@ const mockCreate = mock(
 );
 const mockFindMany = mock(() => Promise.resolve<Message[]>([]));
 const mockFindConversation = mock(() => Promise.resolve<Message[]>([]));
-const mockCreateCompletion = mock((_messages: unknown[]) =>
+const mockSmsCreateCompletion = mock((_messages: unknown[]) =>
   Promise.resolve("Mocked text response"),
 );
 
@@ -45,8 +45,18 @@ mock.module("../app/modules/llm/client", () => ({
 }));
 
 mock.module("../app/modules/llm/completions", () => ({
-  createCompletion: mockCreateCompletion,
-  streamCompletion: mock(async function* () {}),
+  defaultCompletion: {
+    create: mock(() => Promise.resolve("")),
+    stream: mock(async function* () {}),
+  },
+  smsCompletion: {
+    create: mockSmsCreateCompletion,
+    stream: mock(async function* () {}),
+  },
+  defineCompletion: mock(() => ({
+    create: mock(() => Promise.resolve("")),
+    stream: mock(async function* () {}),
+  })),
 }));
 
 mock.module("../app/modules/twilio/stream", () => ({
@@ -78,7 +88,7 @@ describe("API Routes", () => {
     mockCreate.mockClear();
     mockFindMany.mockClear();
     mockFindConversation.mockClear();
-    mockCreateCompletion.mockClear();
+    mockSmsCreateCompletion.mockClear();
   });
 
   describe("GET /health", () => {
@@ -221,7 +231,7 @@ describe("API Routes", () => {
         "+15559876543",
         30,
       );
-      expect(mockCreateCompletion).toHaveBeenCalledWith([]);
+      expect(mockSmsCreateCompletion).toHaveBeenCalledWith([]);
     });
 
     it("should return 400 when Body is missing", async () => {
