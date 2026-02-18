@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { file } from "bun";
+import createDebug from "debug";
+
+const debug = createDebug("api:config");
 
 async function resolveSecrets(
   env: NodeJS.ProcessEnv,
@@ -41,6 +44,8 @@ if (!parsed.success) {
 }
 
 const config = parsed.data;
+
+debug("Config loaded");
 
 if (!config.TWILIO_AUTH_TOKEN) {
   console.warn(

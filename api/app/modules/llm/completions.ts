@@ -1,5 +1,8 @@
 import type { ChatCompletionMessageParam } from "openai/resources";
+import createDebug from "debug";
 import client from "./client";
+
+const debug = createDebug("api:llm:completions");
 
 export type CompletionMessage = ChatCompletionMessageParam;
 
@@ -15,24 +18,32 @@ export function defineCompletion(settings: CompletionSettings) {
 
   return {
     async create(messages: CompletionMessage[]): Promise<string> {
+      debug("create: model=%s messages=%d", model, messages.length);
       const response = await client.chat.completions.create({
         model,
         ...params,
         messages: [systemMessage, ...messages],
       });
-      return response.choices[0]?.message.content || "";
+      const content = response.choices[0]?.message.content || "";
+      debug("create: response length=%d", content.length);
+      return content;
     },
 
     async *stream(messages: CompletionMessage[]) {
+      debug("stream: model=%s messages=%d", model, messages.length);
       const stream = await client.chat.completions.create({
         model,
         ...params,
         messages: [systemMessage, ...messages],
         stream: true,
       });
+      let totalLength = 0;
       for await (const chunk of stream) {
-        yield chunk.choices[0]?.delta.content || "";
+        const content = chunk.choices[0]?.delta.content || "";
+        totalLength += content.length;
+        yield content;
       }
+      debug("stream: complete, total length=%d", totalLength);
     },
   };
 }

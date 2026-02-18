@@ -1,6 +1,9 @@
+import createDebug from "debug";
 import { NotFoundError } from "../../shared/errors";
 import { smsCompletion } from "../llm/completions";
 import { repository, type Conversation, type Message } from ".";
+
+const debug = createDebug("api:message:service");
 
 export async function create(
   input: repository.CreateMessageInput,
@@ -41,6 +44,7 @@ export async function replyToMessage(
   from: string,
   body: string,
 ): Promise<string> {
+  debug("replyToMessage: from=%s body length=%d", from, body.length);
   await repository.create({
     body,
     receiver: to,
@@ -48,12 +52,14 @@ export async function replyToMessage(
     direction: "inbound",
   });
   const conversation = await repository.findConversation(from, to, 30);
+  debug("replyToMessage: conversation history=%d messages", conversation.length);
   const llmResponse = await smsCompletion.create(
     conversation.map((msg) => ({
       role: msg.direction === "outbound" ? "assistant" : "user",
       content: msg.body,
     })),
   );
+  debug("replyToMessage: LLM response length=%d", llmResponse.length);
   await repository.create({
     body: llmResponse,
     receiver: from,

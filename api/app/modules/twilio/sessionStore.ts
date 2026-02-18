@@ -1,5 +1,8 @@
 import type { WebSocket } from "ws";
+import createDebug from "debug";
 import type { CompletionMessage } from "../llm/completions";
+
+const debug = createDebug("api:twilio:session");
 
 export type StreamSession = {
   ws: WebSocket;
@@ -21,6 +24,7 @@ export function create(
   callSid: string,
   session: Omit<StreamSession, "createdAt">,
 ): void {
+  debug("Session created: callSid=%s from=%s to=%s", callSid, session.from, session.to);
   sessions.set(callSid, { ...session, createdAt: Date.now() });
 }
 
@@ -33,13 +37,20 @@ export function appendMessage(
   message: CompletionMessage,
 ): CompletionMessage[] {
   const session = sessions.get(callSid);
-  if (!session) return [];
+  if (!session) {
+    debug("appendMessage: no session for callSid=%s", callSid);
+    return [];
+  }
   session.messages.push(message);
+  debug("appendMessage: callSid=%s role=%s total=%d", callSid, message.role, session.messages.length);
   return session.messages;
 }
 
 export function remove(callSid: string): StreamSession | undefined {
   const session = sessions.get(callSid);
+  if (session) {
+    debug("Session removed: callSid=%s messages=%d", callSid, session.messages.length);
+  }
   sessions.delete(callSid);
   return session;
 }
@@ -62,6 +73,9 @@ export function cleanup(): number {
       sessions.delete(callSid);
       removed++;
     }
+  }
+  if (removed > 0) {
+    debug("Cleanup: removed %d stale sessions, %d remaining", removed, sessions.size);
   }
   return removed;
 }

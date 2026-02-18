@@ -14,6 +14,7 @@ export function handleIncomingCall(
   from: string,
   to: string,
 ): string {
+  debug("Incoming call: from=%s to=%s host=%s", from, to, host);
   const twiml = new twilio.twiml.VoiceResponse();
 
   const start = twiml.start();
@@ -38,10 +39,12 @@ export async function handleIncomingSms(
   from: string,
   body: string,
 ): Promise<string> {
+  debug("Incoming SMS: from=%s to=%s body length=%d", from, to, body.length);
   const twiml = new twilio.twiml.MessagingResponse();
 
   try {
     const message = await messageService.replyToMessage(to, from, body);
+    debug("SMS reply sent: to=%s length=%d", from, message.length);
     twiml.message(message);
   } catch (error) {
     debug("Failed to handle SMS from %s: %O", from, error);
@@ -58,10 +61,12 @@ export async function handleTranscriptionEvent(
   event: string,
   text?: string,
 ): Promise<void> {
+  debug("Transcription event: callSid=%s event=%s", callSid, event);
   if (event !== "transcription-content" || !text) {
     return;
   }
 
+  debug("Transcription text: callSid=%s length=%d", callSid, text.length);
   const messages = sessionStore.appendMessage(callSid, {
     role: "user",
     content: text,

@@ -94,7 +94,8 @@ export function attachWebSocket(server: Server): void {
           debug("Stream stopped: callSid=%s", callSid);
           const session = sessionStore.remove(callSid);
 
-          if (session && session.messages.length > 0) {
+          if (session?.messages.length) {
+            debug("Saving %d messages for callSid=%s", session.messages.length, callSid);
             for (const message of session.messages) {
               const isUser = message.role === "user";
               await messageRepository.create({
@@ -124,8 +125,12 @@ export function attachWebSocket(server: Server): void {
 
 export function sendAudio(callSid: string, base64Chunks: string[]): void {
   const session = sessionStore.get(callSid);
-  if (!session) return;
+  if (!session) {
+    debug("sendAudio: no session for callSid=%s", callSid);
+    return;
+  }
 
+  debug("sendAudio: callSid=%s chunks=%d", callSid, base64Chunks.length);
   for (const payload of base64Chunks) {
     session.ws.send(
       JSON.stringify({
@@ -139,7 +144,10 @@ export function sendAudio(callSid: string, base64Chunks: string[]): void {
 
 export function clearAudio(callSid: string): void {
   const session = sessionStore.get(callSid);
-  if (!session) return;
+  if (!session) {
+    debug("clearAudio: no session for callSid=%s", callSid);
+    return;
+  }
 
   session.ws.send(
     JSON.stringify({
