@@ -4,71 +4,106 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AIVA (Automate.It Virtual Assistant) is a virtual assistant application that processes phone calls and text messages via Twilio webhooks, stores them in PostgreSQL, and provides a web interface to view messages. The system integrates with Venice AI for LLM-powered SMS responses.
+AIVA (Automate.It Virtual Assistant) is a virtual assistant application that processes phone calls and text messages via Twilio webhooks, stores them in PostgreSQL, and provides a web interface to view messages. The system integrates with Venice AI for LLM-powered SMS and voice responses.
 
 ## Architecture
 
 ### Three-tier Docker Compose Stack
 
 1. **API Backend** (`api/`)
-   - Express + TypeScript server handling Twilio webhooks
+   - Express 5 + TypeScript server handling Twilio webhooks
    - Runs on Bun runtime
-   - Connects to Venice AI API for LLM completions
-   - Database interactions via Bun's native SQL client
-   - Routes: `/voice`, `/voiceTranscribe`, `/sms`, `/messages`, `/health`
+   - Connects to Venice AI API for LLM completions and TTS
+   - Database interactions via Bun's native `SQL` client using `DATABASE_URL`
+   - Routes: `GET /health`, `GET|POST /messages`, `GET /messages/conversations`, `GET /messages/:id`, `POST /twilio/voice`, `POST /twilio/transcription-events`, `POST /twilio/sms`
+   - WebSocket endpoint at `/twilio/stream` for Twilio Media Streams
 
 2. **Database** (`database` service)
    - PostgreSQL 18 Alpine
-   - Initialized via `db/init.sql` (creates `messages` table with indexes)
-   - Credentials managed via Docker secrets in `secrets/` directory
+   - Schema managed via dbmate migrations in `db/migrations/`
+   - `db/init.sql` seeds schema on first container creation
+   - Credentials via `DB_USER` and `DB_PASSWORD` env vars (user also serves as database name)
 
 3. **Web UI** (`webui/`)
    - SvelteKit 2 + Tailwind CSS 4 + DaisyUI
-   - Static build served by NGINX
+   - Static build served by NGINX (prod) or Vite dev server (dev)
    - Displays messages fetched from API `/messages` endpoint
+
+4. **NGINX** (`nginx/`)
+   - Reverse proxy for prod — serves static WebUI files and proxies API requests
+   - Custom config in `nginx/conf.d/`
+
+### Docker Compose Profiles
+
+- **`dev`**: `database`, `api-dev`, `webui-dev`, `ngrok`
+- **`prod`**: `database`, `api`, `webui`, `nginx`
 
 ### Key Data Flow
 
-**SMS Flow**: Twilio webhook → `/sms` endpoint → insert user message → Venice AI completion → insert assistant response → return TwiML response
+**SMS Flow**: Twilio webhook → `POST /twilio/sms` → insert user message → Venice AI SMS completion → insert assistant response → return TwiML response
 
-**Voice Flow**: Twilio webhook → `/voice` endpoint → return TwiML to record → transcription sent to `/voiceTranscribe` → insert message
+**Voice Flow**: Twilio webhook → `POST /twilio/voice` → return TwiML to start Transcription + connect Media Stream WebSocket → `POST /twilio/transcription-events` fires with transcribed text → LLM streaming completion → Venice TTS (`tts-kokoro`, voice `af_sky`) → PCM→mu-law conversion → audio sent back over WebSocket → on call end, messages saved to DB
+
+### Module Structure
+
+```
+api/app/
+├── config.ts           # Zod-validated env config (reads _FILE secrets too)
+├── factory.ts          # Express app factory
+├── server.ts           # Entry point: starts server, attaches WebSocket, starts session cleanup
+├── index.ts            # Re-exports server
+├── modules/
+│   ├── llm/            # Venice AI client, defineCompletion(), smsCompletion, defaultCompletion
+│   ├── message/        # CRUD routes/controller/service/repository for messages
+│   └── twilio/         # Webhook handlers, Media Streams WebSocket, TTS, session store
+└── shared/
+    ├── database/       # Bun SQL client (DATABASE_URL)
+    ├── errors/         # AppError class
+    └── middleware/     # Rate limiting, request validation
+```
 
 ### Database Layer
 
-- Uses Bun's native `SQL` client (not an ORM)
-- Database connection configured via environment variables pointing to secret files
-- Entity pattern: `api/app/entity/messages.ts` exports typed functions (`insertMessage`, `getAllMessages`, `getMessageById`, `getMessagesByPhone`, `getConversation`)
-- All credentials read from Docker secrets files at runtime
+- Uses Bun's native `SQL` client (not an ORM), connected via `DATABASE_URL`
+- `api/app/shared/database/client.ts` exports the SQL instance
+- `api/app/modules/message/repository.ts` contains typed DB functions
+- Schema managed by dbmate; run `scripts/migrate up` to apply migrations
 
 ### LLM Integration
 
-- Venice AI client in `api/app/llm/client.ts` (OpenAI-compatible API)
-- Model: `venice-uncensored`
-- `smsCompletion()` function includes Venice-specific parameter `enable_web_search: "auto"`
-- API key loaded from `VENICE_API_KEY_FILE` secret
+- Venice AI client in `api/app/modules/llm/client.ts` (OpenAI-compatible API)
+- `defineCompletion()` factory creates reusable completions with `.create()` and `.stream()` methods
+- `smsCompletion` — concise SMS responses
+- `defaultCompletion` — voice call responses (streaming)
+- Both use model `venice-uncensored` with `enable_web_search: "auto"`
+- TTS via Venice `tts-kokoro` model in `api/app/modules/twilio/tts.ts`
 
 ## Development Commands
 
 ### Local Development (Recommended)
 
-Requires: Bun, Docker/Docker Compose
+Requires: Bun, Docker/Docker Compose, a `.env` file (see `.env.example`)
 
 ```bash
-# Start database + both dev servers (from root)
+# Start database, run migrations, and both dev servers (from root)
 scripts/dev
 
 # Or manually:
 docker compose up -d database
+scripts/migrate up
 cd api && bun dev          # API dev server with --watch
 cd webui && bun dev        # Vite dev server
 ```
+
+The `scripts/dev` script also loads `.env` and starts the ngrok tunnel when running the full `dev` compose profile.
 
 ### API Development
 
 ```bash
 cd api
 bun install           # Install dependencies
-bun dev              # Dev server with hot reload (DEBUG=api for verbose logs)
+bun dev              # Dev server with hot reload
+DEBUG=api bun dev    # With verbose debug logs (or: bun run debug)
 bun test             # Run all tests
 bun test:watch       # Watch mode tests
 bun run build        # TypeScript compilation
@@ -85,18 +120,28 @@ bun dev              # Vite dev server
 bun run build        # Production build
 bun check            # Svelte type checking
 bun check:watch      # Watch mode
-bun lint             # ESLint + Prettier
+bun lint             # ESLint + Prettier check
 bun format           # Prettier write
 bun test             # Run all tests (unit + e2e)
 bun test:unit        # Vitest unit tests
 bun test:e2e         # Playwright tests
 ```
 
+### Database Management
+
+```bash
+scripts/migrate up       # Apply pending migrations
+scripts/migrate down     # Roll back last migration
+scripts/psql             # Open psql shell in running database container
+```
+
+Migrations use [dbmate](https://github.com/amacneil/dbmate) and live in `db/migrations/`.
+
 ### Production Build
 
 ```bash
-# Build and run entire stack
-docker compose up
+# Build and run entire stack (prod profile)
+docker compose --profile prod up
 
 # Build individual services
 docker compose build api
@@ -105,37 +150,60 @@ docker compose build web
 
 ### Testing
 
-- **API**: Tests in `api/test/` using Bun's test runner. Set `VENICE_API_KEY=test-key` for tests.
+- **API**: Tests in `api/test/` using Bun's test runner.
 - **WebUI**: Unit tests with Vitest, E2E with Playwright in `webui/tests/`
 
-## Required Secrets
+## Environment Setup
 
-Before running, ensure these files exist in `secrets/`:
-- `postgres_password`
-- `postgres_user`
-- `postgres_db` (note: `compose.yaml` has typo mapping `postgres_db` secret to `postgres_user` file)
-- `venice_api_key`
+Copy `.env.example` to `.env` and fill in values:
+
+```bash
+# Application
+NODE_ENV=development
+
+# Database
+DB_USER=aiva
+DB_PASSWORD=changeme
+DATABASE_URL=postgres://aiva:changeme@database:5432/aiva
+
+# API
+PUBLIC_HOST=https://your-domain.ngrok-free.app
+VENICE_API_KEY=your-venice-api-key
+TWILIO_AUTH_TOKEN=your-twilio-auth-token  # Optional; disables signature validation if unset
+
+# Ngrok (dev profile only)
+NGROK_AUTHTOKEN=your-ngrok-auth-token
+
+# WebUI
+PUBLIC_API_HOST=http://localhost:3274
+```
+
+The `secrets/` directory contains plain-text secret files (`postgres_password`, `postgres_user`, `venice_api_key`) that are read by `config.ts` via the `_FILE` env var suffix pattern.
 
 ## Environment Variables
 
 ### API
-- `PORT` - Server port (default: 3000)
-- `NODE_ENV` - Environment (development/production)
-- `DATABASE_PASSWORD_FILE`, `DATABASE_USER_FILE`, `DATABASE_NAME_FILE` - Paths to secret files
-- `DATABASE_HOST` - Database host (default: localhost)
-- `DATABASE_PORT` - Database port (default: 5432)
-- `VENICE_API_KEY_FILE` - Path to Venice API key secret
+- `PORT` - Server port (default: 3274)
+- `NODE_ENV` - Environment (`development`/`production`/`test`)
+- `DATABASE_URL` - PostgreSQL connection string
+- `PUBLIC_HOST` - Public hostname used to build Twilio callback URLs
+- `VENICE_API_KEY` (or `VENICE_API_KEY_FILE`) - Venice AI API key
+- `TWILIO_AUTH_TOKEN` (optional) - Enables Twilio webhook signature validation
 
 ### WebUI
-- `PUBLIC_API_HOST` - API backend URL (default: http://localhost:3000)
+- `PUBLIC_HOST` - Public hostname
+- `API_HOST` - Internal API hostname (dev: `api-dev`)
 
 ## Development Notes
 
 ### Webhook Testing
-Use ngrok or similar tunneling service to expose local API for Twilio webhook delivery during development.
+The `dev` compose profile includes an ngrok service that tunnels to `api-dev` using a static domain (`PUBLIC_HOST`). Set `NGROK_AUTHTOKEN` and `PUBLIC_HOST` in `.env`.
 
 ### Database Schema
-Single `messages` table with columns: `id`, `sender`, `receiver`, `body`, `created`. Indexed on sender, receiver, and created timestamp.
+`messages` table columns: `id`, `sender`, `receiver`, `body`, `direction` (`inbound`|`outbound`), `created`. Indexed on sender, receiver, and created timestamp.
 
 ### Twilio Integration
-Voice calls are recorded and transcribed. SMS messages trigger LLM completions via Venice AI. Both store messages with sender/receiver phone numbers.
+- **Voice**: Uses Twilio Transcription + Media Streams for real-time STT and TTS audio playback
+- **SMS**: Triggers Venice AI LLM completion; response returned as TwiML
+- Both flows store messages with `sender`/`receiver` phone numbers and `direction`
+- Twilio webhook signature validation is enabled when `TWILIO_AUTH_TOKEN` is set
