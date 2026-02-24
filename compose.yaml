@@ -63,6 +63,7 @@ services:
       - "5173:5173"
     environment:
       PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
+      API_HOST: api-dev
     volumes:
       - ./webui:/app
       - /app/node_modules

@@ -3,6 +3,8 @@ import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
 
+const apiHost = process.env.API_HOST ?? 'localhost';
+
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
   server: {
@@ -10,10 +12,10 @@ export default defineConfig({
       (h) => h !== undefined,
     ),
     proxy: {
-      '/messages': 'http://api:3274',
-      '/health': 'http://api:3274',
+      '/messages': `http://${apiHost}:3274`,
+      '/health': `http://${apiHost}:3274`,
       '/twilio': {
-        target: 'http://api:3274',
+        target: `http://${apiHost}:3274`,
         ws: true,
       },
     },
