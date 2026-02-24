@@ -13,18 +13,21 @@ RUN cd /temp/prod && bun install --frozen-lockfile --production
 FROM base AS dev
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
-CMD ["run", "dev"]
+USER bun
+CMD ["bun", "--watch", "app/index.ts"]
 
 FROM dev AS test
-RUN NODE_ENV=test bun run test
-RUN bun run type-check
+USER root
+RUN NODE_ENV=test bun run test && bun run type-check
 
+# Release stage depends on test passing
 FROM base AS release
+COPY --from=test /dev/null /dev/null
 COPY --from=install /temp/prod/node_modules node_modules
 COPY app/ app/
-COPY tsconfig.json package.json ./
+COPY package.json ./
 
 USER bun
 EXPOSE 3274
-ENTRYPOINT ["bun"]
-CMD ["run", "start"]
+ENTRYPOINT ["bun", "--sql-preconnect"]
+CMD ["app/index.ts"]
