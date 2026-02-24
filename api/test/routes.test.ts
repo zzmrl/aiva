@@ -61,14 +61,6 @@ mock.module("../app/modules/llm/completions", () => ({
 
 mock.module("../app/modules/twilio/stream", () => ({
   attachWebSocket: mock(() => {}),
-  sendAudio: mock(() => {}),
-  clearAudio: mock(() => {}),
-}));
-
-mock.module("../app/modules/twilio/tts", () => ({
-  textToSpeech: mock(() =>
-    Promise.resolve({ pcm: Buffer.alloc(0), sampleRate: 24000 }),
-  ),
 }));
 
 const { createApp } = await import("../app/factory");
@@ -100,7 +92,7 @@ describe("API Routes", () => {
   });
 
   describe("POST /twilio/voice", () => {
-    it("should return TwiML with transcription and stream", async () => {
+    it("should return TwiML with ConversationRelay", async () => {
       const response = await fetch(`${baseUrl}/twilio/voice`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -116,77 +108,10 @@ describe("API Routes", () => {
       const xml = await response.text();
       expect(xml).toContain("<?xml version");
       expect(xml).toContain("<Response>");
-      expect(xml).toContain("<Start>");
-      expect(xml).toContain("<Transcription");
-      expect(xml).toContain("<Say>");
-      expect(xml).toContain("Hey it's Aiva! How can I help you today?");
       expect(xml).toContain("<Connect>");
-      expect(xml).toContain("<Stream");
+      expect(xml).toContain("<ConversationRelay");
       expect(xml).toContain("test.example.com");
-    });
-  });
-
-  describe("POST /twilio/transcription-events", () => {
-    it("should return 200 for transcription-content event", async () => {
-      const response = await fetch(`${baseUrl}/twilio/transcription-events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          CallSid: "CA1234567890abcdef",
-          TranscriptionEvent: "transcription-content",
-          TranscriptionText: "Hello there",
-        }),
-      });
-
-      expect(response.status).toBe(200);
-    });
-
-    it("should return 200 for non-content events", async () => {
-      const response = await fetch(`${baseUrl}/twilio/transcription-events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          CallSid: "CA1234567890abcdef",
-          TranscriptionEvent: "transcription-started",
-        }),
-      });
-
-      expect(response.status).toBe(200);
-    });
-
-    it("should return 400 when CallSid is missing", async () => {
-      const response = await fetch(`${baseUrl}/twilio/transcription-events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          TranscriptionEvent: "transcription-content",
-          TranscriptionText: "Hello",
-        }),
-      });
-
-      expect(response.status).toBe(400);
-    });
-
-    it("should return 400 when TranscriptionEvent is missing", async () => {
-      const response = await fetch(`${baseUrl}/twilio/transcription-events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          CallSid: "CA1234567890abcdef",
-        }),
-      });
-
-      expect(response.status).toBe(400);
-    });
-
-    it("should return 400 when body is empty", async () => {
-      const response = await fetch(`${baseUrl}/twilio/transcription-events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "",
-      });
-
-      expect(response.status).toBe(400);
+      expect(xml).toContain("welcomeGreeting");
     });
   });
 

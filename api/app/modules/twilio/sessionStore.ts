@@ -4,31 +4,31 @@ import type { CompletionMessage } from "../llm/completions";
 
 const debug = createDebug("api:twilio:session");
 
-export type StreamSession = {
+export type RelaySession = {
   ws: WebSocket;
-  streamSid: string;
   callSid: string;
   from: string;
   to: string;
   messages: CompletionMessage[];
+  abortController: AbortController | null;
   createdAt: number;
 };
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
-const sessions = new Map<string, StreamSession>();
+const sessions = new Map<string, RelaySession>();
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
 export function create(
   callSid: string,
-  session: Omit<StreamSession, "createdAt">,
+  session: Omit<RelaySession, "createdAt">,
 ): void {
   debug("Session created: callSid=%s from=%s to=%s", callSid, session.from, session.to);
   sessions.set(callSid, { ...session, createdAt: Date.now() });
 }
 
-export function get(callSid: string): StreamSession | undefined {
+export function get(callSid: string): RelaySession | undefined {
   return sessions.get(callSid);
 }
 
@@ -46,7 +46,7 @@ export function appendMessage(
   return session.messages;
 }
 
-export function remove(callSid: string): StreamSession | undefined {
+export function remove(callSid: string): RelaySession | undefined {
   const session = sessions.get(callSid);
   if (session) {
     debug("Session removed: callSid=%s messages=%d", callSid, session.messages.length);
@@ -55,7 +55,7 @@ export function remove(callSid: string): StreamSession | undefined {
   return session;
 }
 
-export function removeByWs(ws: WebSocket): StreamSession | undefined {
+export function removeByWs(ws: WebSocket): RelaySession | undefined {
   for (const [callSid, session] of sessions) {
     if (session.ws === ws) {
       sessions.delete(callSid);

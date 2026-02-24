@@ -1,64 +1,58 @@
 import { WebSocketServer } from "ws";
+import type { WebSocket } from "ws";
 import type { Server } from "http";
 import createDebug from "debug";
 import * as sessionStore from "./sessionStore";
+import { defaultCompletion } from "../llm/completions";
 import { repository as messageRepository } from "../message";
 
 const debug = createDebug("api:twilio:stream");
 
-type ConnectedEvent = {
-  event: "connected";
-  protocol: string;
-  version: string;
+// Local map from WebSocket to callSid for non-destructive lookup
+const wsToCallSid = new Map<WebSocket, string>();
+
+type SetupEvent = {
+  type: "setup";
+  callSid: string;
+  from: string;
+  to: string;
+  sessionId: string;
+  accountSid: string;
+  customParameters: Record<string, string>;
 };
 
-type StartEvent = {
-  event: "start";
-  sequenceNumber: string;
-  start: {
-    accountSid: string;
-    callSid: string;
-    streamSid: string;
-    tracks: string[];
-    mediaFormat: {
-      encoding: string;
-      sampleRate: number;
-      channels: number;
-    };
-    customParameters: Record<string, string>;
-  };
+type PromptEvent = {
+  type: "prompt";
+  voicePrompt: string;
+  last: boolean;
 };
 
-type MediaEvent = {
-  event: "media";
-  sequenceNumber: string;
-  media: {
-    track: string;
-    chunk: string;
-    timestamp: string;
-    payload: string;
-  };
+type InterruptEvent = {
+  type: "interrupt";
+  utteranceUntilInterrupt: string;
+  durationUntilInterruptMs: number;
 };
 
-type StopEvent = {
-  event: "stop";
-  sequenceNumber: string;
-  stop: {
-    accountSid: string;
-    callSid: string;
-  };
+type ErrorEvent = {
+  type: "error";
+  description: string;
+  callSid: string;
 };
 
-type StreamEvent = ConnectedEvent | StartEvent | MediaEvent | StopEvent;
+type RelayEvent = SetupEvent | PromptEvent | InterruptEvent | ErrorEvent;
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof Error && err.name === "AbortError";
+}
 
 export function attachWebSocket(server: Server): void {
-  const wss = new WebSocketServer({ server, path: "/twilio/stream" });
+  const wss = new WebSocketServer({ server, path: "/twilio/relay" });
 
   wss.on("connection", (ws) => {
-    debug("WebSocket connection established");
+    debug("ConversationRelay WebSocket connection established");
 
     ws.on("message", async (data) => {
-      let msg: StreamEvent;
+      let msg: RelayEvent;
       try {
         msg = JSON.parse(data.toString());
       } catch (error) {
@@ -66,93 +60,120 @@ export function attachWebSocket(server: Server): void {
         return;
       }
 
-      switch (msg.event) {
-        case "connected":
-          debug("Twilio stream connected");
-          break;
-
-        case "start": {
-          const { callSid, streamSid, customParameters } = msg.start;
-          debug("Stream started: callSid=%s streamSid=%s", callSid, streamSid);
-          sessionStore.create(callSid, {
+      switch (msg.type) {
+        case "setup": {
+          debug("Setup: callSid=%s from=%s to=%s", msg.callSid, msg.from, msg.to);
+          wsToCallSid.set(ws, msg.callSid);
+          sessionStore.create(msg.callSid, {
             ws,
-            streamSid,
-            callSid,
-            from: customParameters.From ?? "",
-            to: customParameters.To ?? "",
+            callSid: msg.callSid,
+            from: msg.from,
+            to: msg.to,
             messages: [],
+            abortController: null,
           });
           break;
         }
 
-        case "media":
-          // Ignored — transcription handles STT
-          break;
+        case "prompt": {
+          if (!msg.last) break;
 
-        case "stop": {
-          const { callSid } = msg.stop;
-          debug("Stream stopped: callSid=%s", callSid);
-          const session = sessionStore.remove(callSid);
+          const callSid = wsToCallSid.get(ws);
+          if (!callSid) {
+            debug("prompt: no session found for this WebSocket");
+            break;
+          }
 
-          if (session?.messages.length) {
-            debug("Saving %d messages for callSid=%s", session.messages.length, callSid);
-            for (const message of session.messages) {
-              const isUser = message.role === "user";
-              await messageRepository.create({
-                sender: isUser ? session.from : session.to,
-                receiver: isUser ? session.to : session.from,
-                body: message.content?.toString() ?? "",
-                direction: isUser ? "inbound" : "outbound",
-              });
+          const session = sessionStore.get(callSid);
+          if (!session) break;
+
+          debug("prompt: callSid=%s length=%d", callSid, msg.voicePrompt.length);
+
+          // Abort any in-flight LLM stream
+          session.abortController?.abort();
+          const controller = new AbortController();
+          session.abortController = controller;
+
+          const messages = sessionStore.appendMessage(callSid, {
+            role: "user",
+            content: msg.voicePrompt,
+          });
+
+          let fullResponse = "";
+          try {
+            for await (const chunk of defaultCompletion.stream(messages, { signal: controller.signal })) {
+              if (controller.signal.aborted) break;
+              fullResponse += chunk;
+              ws.send(JSON.stringify({ type: "text", token: chunk, last: false }));
+            }
+
+            if (!controller.signal.aborted) {
+              ws.send(JSON.stringify({ type: "text", token: "", last: true }));
+              if (fullResponse) {
+                sessionStore.appendMessage(callSid, {
+                  role: "assistant",
+                  content: fullResponse,
+                });
+              }
+            }
+          } catch (error: unknown) {
+            if (isAbortError(error)) {
+              debug("LLM stream aborted: callSid=%s", callSid);
+            } else {
+              debug("LLM stream error: callSid=%s %O", callSid, error);
+            }
+          } finally {
+            if (session.abortController === controller) {
+              session.abortController = null;
             }
           }
+          break;
+        }
+
+        case "interrupt": {
+          const callSid = wsToCallSid.get(ws);
+          if (!callSid) break;
+
+          const session = sessionStore.get(callSid);
+          if (!session) break;
+
+          debug("interrupt: callSid=%s", callSid);
+          session.abortController?.abort();
+          session.abortController = null;
+          break;
+        }
+
+        case "error": {
+          debug("ConversationRelay error: callSid=%s description=%s", msg.callSid, msg.description);
+          ws.close();
           break;
         }
       }
     });
 
-    ws.on("close", () => {
-      debug("WebSocket connection closed");
-      sessionStore.removeByWs(ws);
+    ws.on("close", async () => {
+      debug("ConversationRelay WebSocket closed");
+      wsToCallSid.delete(ws);
+      const session = sessionStore.removeByWs(ws);
+
+      if (session?.messages.length) {
+        debug("Saving %d messages for callSid=%s", session.messages.length, session.callSid);
+        for (const message of session.messages) {
+          const isUser = message.role === "user";
+          await messageRepository.create({
+            sender: isUser ? session.from : session.to,
+            receiver: isUser ? session.to : session.from,
+            body: message.content?.toString() ?? "",
+            direction: isUser ? "inbound" : "outbound",
+          });
+        }
+      }
     });
 
     ws.on("error", (err) => {
-      debug("WebSocket error: %O", err);
+      debug("ConversationRelay WebSocket error: %O", err);
+      wsToCallSid.delete(ws);
       sessionStore.removeByWs(ws);
     });
   });
-}
-
-export function sendAudio(callSid: string, base64Chunks: string[]): void {
-  const session = sessionStore.get(callSid);
-  if (!session) {
-    debug("sendAudio: no session for callSid=%s", callSid);
-    return;
-  }
-
-  debug("sendAudio: callSid=%s chunks=%d", callSid, base64Chunks.length);
-  for (const payload of base64Chunks) {
-    session.ws.send(
-      JSON.stringify({
-        event: "media",
-        streamSid: session.streamSid,
-        media: { payload },
-      }),
-    );
-  }
-}
-
-export function clearAudio(callSid: string): void {
-  const session = sessionStore.get(callSid);
-  if (!session) {
-    debug("clearAudio: no session for callSid=%s", callSid);
-    return;
-  }
-
-  session.ws.send(
-    JSON.stringify({
-      event: "clear",
-      streamSid: session.streamSid,
-    }),
-  );
 }

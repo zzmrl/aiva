@@ -29,7 +29,7 @@ describe("sessions", () => {
     it("should store and retrieve a session", () => {
       sessions.create("test-call-1", {
         ws: mockWs,
-        streamSid: "stream-1",
+        abortController: null,
         callSid: "test-call-1",
         from: "+15551234567",
         to: "+15559876543",
@@ -41,7 +41,7 @@ describe("sessions", () => {
       expect(session?.callSid).toBe("test-call-1");
       expect(session?.from).toBe("+15551234567");
       expect(session?.to).toBe("+15559876543");
-      expect(session?.streamSid).toBe("stream-1");
+      expect(session?.abortController).toBeNull();
       expect(session?.messages).toEqual([]);
     });
 
@@ -55,7 +55,7 @@ describe("sessions", () => {
     it("should append a message and return all messages", () => {
       sessions.create("test-call-1", {
         ws: mockWs,
-        streamSid: "stream-1",
+        abortController: null,
         callSid: "test-call-1",
         from: "+15551234567",
         to: "+15559876543",
@@ -74,7 +74,7 @@ describe("sessions", () => {
     it("should accumulate messages", () => {
       sessions.create("test-call-1", {
         ws: mockWs,
-        streamSid: "stream-1",
+        abortController: null,
         callSid: "test-call-1",
         from: "+15551234567",
         to: "+15559876543",
@@ -106,7 +106,7 @@ describe("sessions", () => {
     it("should remove and return the session", () => {
       sessions.create("test-call-1", {
         ws: mockWs,
-        streamSid: "stream-1",
+        abortController: null,
         callSid: "test-call-1",
         from: "+15551234567",
         to: "+15559876543",
@@ -131,7 +131,7 @@ describe("sessions", () => {
     it("should remove and return the session matching the WebSocket", () => {
       sessions.create("test-call-1", {
         ws: mockWs,
-        streamSid: "stream-1",
+        abortController: null,
         callSid: "test-call-1",
         from: "+15551234567",
         to: "+15559876543",
@@ -152,7 +152,7 @@ describe("sessions", () => {
     it("should only remove the matching session", () => {
       sessions.create("test-call-1", {
         ws: mockWs,
-        streamSid: "stream-1",
+        abortController: null,
         callSid: "test-call-1",
         from: "+15551234567",
         to: "+15559876543",
@@ -160,7 +160,7 @@ describe("sessions", () => {
       });
       sessions.create("test-call-2", {
         ws: mockWs2,
-        streamSid: "stream-2",
+        abortController: null,
         callSid: "test-call-2",
         from: "+15551111111",
         to: "+15552222222",
@@ -177,7 +177,7 @@ describe("sessions", () => {
     it("should remove sessions older than 30 minutes", () => {
       sessions.create("test-call-1", {
         ws: mockWs,
-        streamSid: "stream-1",
+        abortController: null,
         callSid: "test-call-1",
         from: "+15551234567",
         to: "+15559876543",
@@ -198,7 +198,7 @@ describe("sessions", () => {
     it("should not remove sessions younger than 30 minutes", () => {
       sessions.create("test-call-1", {
         ws: mockWs,
-        streamSid: "stream-1",
+        abortController: null,
         callSid: "test-call-1",
         from: "+15551234567",
         to: "+15559876543",
@@ -213,7 +213,7 @@ describe("sessions", () => {
     it("should only remove expired sessions", () => {
       sessions.create("test-call-1", {
         ws: mockWs,
-        streamSid: "stream-1",
+        abortController: null,
         callSid: "test-call-1",
         from: "+15551234567",
         to: "+15559876543",
@@ -221,7 +221,7 @@ describe("sessions", () => {
       });
       sessions.create("test-call-2", {
         ws: mockWs2,
-        streamSid: "stream-2",
+        abortController: null,
         callSid: "test-call-2",
         from: "+15551111111",
         to: "+15552222222",
@@ -246,7 +246,7 @@ describe("sessions", () => {
       const before = Date.now();
       sessions.create("test-call-1", {
         ws: mockWs,
-        streamSid: "stream-1",
+        abortController: null,
         callSid: "test-call-1",
         from: "+15551234567",
         to: "+15559876543",

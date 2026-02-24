@@ -29,14 +29,14 @@ export function defineCompletion(settings: CompletionSettings) {
       return content;
     },
 
-    async *stream(messages: CompletionMessage[]) {
+    async *stream(messages: CompletionMessage[], options?: { signal?: AbortSignal }) {
       debug("stream: model=%s messages=%d", model, messages.length);
       const stream = await client.chat.completions.create({
         model,
         ...params,
         messages: [systemMessage, ...messages],
         stream: true,
-      });
+      }, { signal: options?.signal });
       let totalLength = 0;
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta.content || "";

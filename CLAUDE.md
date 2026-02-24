@@ -167,7 +167,7 @@ DB_PASSWORD=changeme
 DATABASE_URL=postgres://aiva:changeme@database:5432/aiva
 
 # API
-PUBLIC_HOST=https://your-domain.ngrok-free.app
+PUBLIC_HOST=your-domain.ngrok-free.app
 VENICE_API_KEY=your-venice-api-key
 TWILIO_AUTH_TOKEN=your-twilio-auth-token  # Optional; disables signature validation if unset
 
