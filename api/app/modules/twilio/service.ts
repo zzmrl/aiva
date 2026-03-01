@@ -11,8 +11,8 @@ export function handleIncomingCall(host: string): string {
   const connect = twiml.connect();
   connect.conversationRelay({
     url: `wss://${host}/twilio/relay`,
-    welcomeGreeting: "Hey it's Aiva! How can I help you today?",
-    voice: "uYXf8XasLslADfZ2MB4u",
+    welcomeGreeting: "Hey it's Ava! Whats up?",
+    voice: "yM93hbw8Qtvdma2wCnJG",
   });
 
   return twiml.toString();

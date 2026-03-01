@@ -3,12 +3,11 @@ import type { WebSocket } from "ws";
 import type { Server } from "http";
 import createDebug from "debug";
 import * as sessionStore from "./sessionStore";
-import { defaultCompletion } from "../llm/completions";
+import { voiceCompletion } from "../llm/completions";
 import { repository as messageRepository } from "../message";
 
 const debug = createDebug("api:twilio:stream");
 
-// Local map from WebSocket to callSid for non-destructive lookup
 const wsToCallSid = new Map<WebSocket, string>();
 
 type SetupEvent = {
@@ -62,7 +61,12 @@ export function attachWebSocket(server: Server): void {
 
       switch (msg.type) {
         case "setup": {
-          debug("Setup: callSid=%s from=%s to=%s", msg.callSid, msg.from, msg.to);
+          debug(
+            "Setup: callSid=%s from=%s to=%s",
+            msg.callSid,
+            msg.from,
+            msg.to,
+          );
           wsToCallSid.set(ws, msg.callSid);
           sessionStore.create(msg.callSid, {
             ws,
@@ -87,12 +91,15 @@ export function attachWebSocket(server: Server): void {
           const session = sessionStore.get(callSid);
           if (!session) break;
 
-          debug("prompt: callSid=%s length=%d", callSid, msg.voicePrompt.length);
+          debug(
+            "prompt: callSid=%s length=%d",
+            callSid,
+            msg.voicePrompt.length,
+          );
 
-          // Abort any in-flight LLM stream
           session.abortController?.abort();
-          const controller = new AbortController();
-          session.abortController = controller;
+          const abortController = new AbortController();
+          session.abortController = abortController;
 
           const messages = sessionStore.appendMessage(callSid, {
             role: "user",
@@ -101,13 +108,17 @@ export function attachWebSocket(server: Server): void {
 
           let fullResponse = "";
           try {
-            for await (const chunk of defaultCompletion.stream(messages, { signal: controller.signal })) {
-              if (controller.signal.aborted) break;
+            for await (const chunk of voiceCompletion.stream(messages, {
+              signal: abortController.signal,
+            })) {
+              if (abortController.signal.aborted) break;
               fullResponse += chunk;
-              ws.send(JSON.stringify({ type: "text", token: chunk, last: false }));
+              ws.send(
+                JSON.stringify({ type: "text", token: chunk, last: false }),
+              );
             }
 
-            if (!controller.signal.aborted) {
+            if (!abortController.signal.aborted) {
               ws.send(JSON.stringify({ type: "text", token: "", last: true }));
               if (fullResponse) {
                 sessionStore.appendMessage(callSid, {
@@ -123,7 +134,7 @@ export function attachWebSocket(server: Server): void {
               debug("LLM stream error: callSid=%s %O", callSid, error);
             }
           } finally {
-            if (session.abortController === controller) {
+            if (session.abortController === abortController) {
               session.abortController = null;
             }
           }
@@ -144,7 +155,11 @@ export function attachWebSocket(server: Server): void {
         }
 
         case "error": {
-          debug("ConversationRelay error: callSid=%s description=%s", msg.callSid, msg.description);
+          debug(
+            "ConversationRelay error: callSid=%s description=%s",
+            msg.callSid,
+            msg.description,
+          );
           ws.close();
           break;
         }
@@ -157,7 +172,11 @@ export function attachWebSocket(server: Server): void {
       const session = sessionStore.removeByWs(ws);
 
       if (session?.messages.length) {
-        debug("Saving %d messages for callSid=%s", session.messages.length, session.callSid);
+        debug(
+          "Saving %d messages for callSid=%s",
+          session.messages.length,
+          session.callSid,
+        );
         for (const message of session.messages) {
           const isUser = message.role === "user";
           await messageRepository.create({
