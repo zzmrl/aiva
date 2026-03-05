@@ -52,7 +52,10 @@ export async function replyToMessage(
     direction: "inbound",
   });
   const conversation = await repository.findConversation(from, to, 30);
-  debug("replyToMessage: conversation history=%d messages", conversation.length);
+  debug(
+    "replyToMessage: conversation history=%d messages",
+    conversation.length,
+  );
   const llmResponse = await smsCompletion.create(
     conversation.map((msg) => ({
       role: msg.direction === "outbound" ? "assistant" : "user",

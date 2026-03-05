@@ -1,32 +1,84 @@
-import type { ChatCompletionMessageParam } from "openai/resources";
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionMessageToolCall,
+} from "openai/resources";
 import createDebug from "debug";
 import client from "./client";
+import { hasMcp, getTools, callTool } from "./mcp";
 
 const debug = createDebug("api:llm:completions");
 
 export type CompletionMessage = ChatCompletionMessageParam;
 
+type VeniceModel =
+  | "zai-org-glm-4.7"
+  | "zai-org-glm-4.7-flash"
+  | "zai-org-glm-5"
+  | "grok-41-fast"
+  | "llama-3.2-3b";
+
 type CompletionSettings = {
-  model: string;
+  model: VeniceModel;
   system: string;
   params?: Record<string, unknown>;
 };
 
+async function executeToolCalls(
+  toolCalls: ChatCompletionMessageToolCall[],
+  conversation: CompletionMessage[],
+): Promise<void> {
+  debug("executing %d tool calls", toolCalls.length);
+  for (const toolCall of toolCalls) {
+    if (toolCall.type !== "function") {
+      continue;
+    }
+    const args = JSON.parse(toolCall.function.arguments) as Record<
+      string,
+      unknown
+    >;
+    const result = await callTool(toolCall.function.name, args);
+    conversation.push({
+      role: "tool",
+      tool_call_id: toolCall.id,
+      content: result,
+    });
+  }
+}
+
 export function defineCompletion(settings: CompletionSettings) {
   const { model, system, params } = settings;
   const systemMessage = { role: "system" as const, content: system };
+  const baseParams = { model, ...params };
 
   return {
     async create(messages: CompletionMessage[]): Promise<string> {
       debug("create: model=%s messages=%d", model, messages.length);
-      const response = await client.chat.completions.create({
-        model,
-        ...params,
-        messages: [systemMessage, ...messages],
-      });
-      const content = response.choices[0]?.message.content || "";
-      debug("create: response length=%d", content.length);
-      return content;
+      const tools = hasMcp() ? await getTools() : undefined;
+      const conversation = [...messages];
+      let includeTools = !!tools?.length;
+
+      while (true) {
+        const response = await client.chat.completions.create({
+          ...baseParams,
+          messages: [systemMessage, ...conversation],
+          ...(includeTools ? { tools } : {}),
+        });
+
+        const choice = response.choices[0];
+
+        if (
+          choice?.finish_reason === "tool_calls" &&
+          choice.message.tool_calls
+        ) {
+          conversation.push(choice.message);
+          await executeToolCalls(choice.message.tool_calls, conversation);
+          includeTools = false;
+        } else {
+          const content = choice?.message.content ?? "";
+          debug("create: response length=%d", content.length);
+          return content;
+        }
+      }
     },
 
     async *stream(
@@ -34,11 +86,31 @@ export function defineCompletion(settings: CompletionSettings) {
       options?: { signal?: AbortSignal },
     ) {
       debug("stream: model=%s messages=%d", model, messages.length);
+      const tools = hasMcp() ? await getTools() : undefined;
+      const conversation = [...messages];
+
+      // Non-streaming tool resolution phase
+      if (tools?.length) {
+        const response = await client.chat.completions.create({
+          ...baseParams,
+          messages: [systemMessage, ...conversation],
+          tools,
+        });
+        const choice = response.choices[0];
+        if (
+          choice?.finish_reason === "tool_calls" &&
+          choice.message.tool_calls
+        ) {
+          conversation.push(choice.message);
+          await executeToolCalls(choice.message.tool_calls, conversation);
+        }
+      }
+
+      // Stream the final response
       const stream = await client.chat.completions.create(
         {
-          model,
-          ...params,
-          messages: [systemMessage, ...messages],
+          ...baseParams,
+          messages: [systemMessage, ...conversation],
           stream: true,
         },
         { signal: options?.signal },
@@ -55,20 +127,20 @@ export function defineCompletion(settings: CompletionSettings) {
 }
 
 export const defaultCompletion = defineCompletion({
-  model: "venice-uncensored",
+  model: "zai-org-glm-4.7",
   system: "You are a helpful assistant. Try to be concise.",
   params: { venice_parameters: { enable_web_search: "auto" } },
 });
 
 export const smsCompletion = defineCompletion({
-  model: "venice-uncensored",
+  model: "zai-org-glm-4.7",
   system:
     "You are a helpful text assistant. Format your response for SMS. Be concise and to the point.",
   params: { venice_parameters: { enable_web_search: "auto" } },
 });
 
 export const voiceCompletion = defineCompletion({
-  model: "venice-uncensored",
+  model: "zai-org-glm-4.7",
   system: `You are a helpful voice assistant. Be concise and conversational.
     Convert the output text into a format suitable for text-to-speech.
     Ensure that numbers, symbols, and abbreviations are expanded for clarity when read aloud.

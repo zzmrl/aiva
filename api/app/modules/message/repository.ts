@@ -12,9 +12,8 @@ export type CreateMessageInput = Pick<
  * @returns The inserted message
  */
 export async function create(input: CreateMessageInput): Promise<Message> {
-  const params = sql(input);
   const [message] = await sql`
-    INSERT INTO messages ${params}
+    INSERT INTO messages ${sql(input)}
     RETURNING *
   `;
   return message;

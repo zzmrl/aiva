@@ -18,8 +18,13 @@ export type Conversation = {
   contact_phone: string;
 };
 
-export async function getMessages(): Promise<Message[]> {
-  const response = await fetch(`/messages`);
+export async function getMessages(phone?: string): Promise<Message[]> {
+  const url = new URL('/messages');
+  if (phone) {
+    url.searchParams.append('phone', encodeURIComponent(phone));
+  }
+
+  const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch messages: ${response.status}`);
@@ -33,16 +38,6 @@ export async function getConversations(): Promise<Conversation[]> {
 
   if (!response.ok) {
     throw new Error(`Failed to fetch conversations: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-export async function getMessagesByPhone(phone: string): Promise<Message[]> {
-  const response = await fetch(`/messages?phone=${encodeURIComponent(phone)}`);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch messages: ${response.status}`);
   }
 
   return response.json();

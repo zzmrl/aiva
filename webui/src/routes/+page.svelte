@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getConversations, getMessagesByPhone, type Conversation, type Message } from '$lib/api';
+  import { getConversations, getMessages, type Conversation, type Message } from '$lib/api';
   import { onMount } from 'svelte';
   import ConversationList from '$lib/ConversationList.svelte';
   import ConversationView from '$lib/ConversationView.svelte';
@@ -27,7 +27,7 @@
     selectedPhone = phone;
     messagesLoading = true;
     try {
-      const fetched = await getMessagesByPhone(phone);
+      const fetched = await getMessages(phone);
       messages = fetched.reverse();
     } catch (err) {
       console.error(err);
