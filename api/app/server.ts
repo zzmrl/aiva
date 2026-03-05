@@ -2,6 +2,7 @@ import createDebug from "debug";
 import config from "./config";
 import { createApp } from "./factory";
 import { sessionStore, stream } from "./modules/twilio";
+import { hasMcp, getTools } from "./modules/llm/mcp";
 
 const debug = createDebug("api");
 
@@ -14,6 +15,12 @@ const server = app.listen(config.PORT, () => {
 
 stream.attachWebSocket(server);
 sessionStore.startCleanup();
+
+if (hasMcp()) {
+  getTools()
+    .then(() => debug("MCP tools pre-loaded"))
+    .catch(console.error);
+}
 
 // Graceful shutdown
 process.on("SIGTERM", () => {
