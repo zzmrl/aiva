@@ -5,25 +5,10 @@ import express, {
 } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import pino from "pino-http";
 import { AppError } from "./shared/errors";
-import { generalLimiter, twilioLimiter } from "./shared/middleware";
+import { generalLimiter, twilioLimiter, log } from "./shared/middleware";
 import { router as messageRouter } from "./modules/message";
 import { router as twilioRouter } from "./modules/twilio";
-
-const logger = () =>
-  pino(
-    process.env.NODE_ENV === "development"
-      ? {
-          transport: {
-            target: "pino-pretty",
-            options: {
-              colorize: true,
-            },
-          },
-        }
-      : {},
-  );
 
 export function createApp() {
   const app = express();
@@ -34,7 +19,7 @@ export function createApp() {
     helmet(),
     cors(),
     generalLimiter,
-    logger(),
+    log(),
     express.json({ limit: "1mb" }),
     express.urlencoded({ extended: true, limit: "1mb" }),
   );

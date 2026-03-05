@@ -3,14 +3,15 @@ import config from "./config";
 import { createApp } from "./factory";
 import { sessionStore, stream } from "./modules/twilio";
 import { hasMcp, getTools } from "./modules/llm/mcp";
+import logger from "./shared/logger";
 
 const debug = createDebug("api");
 
 const app = createApp();
 
 const server = app.listen(config.PORT, () => {
-  console.info(`Server is listening on port ${config.PORT}`);
-  console.info(`Environment: ${config.NODE_ENV}`);
+  logger.info(`Server is listening on port ${config.PORT}`);
+  logger.info(`Environment: ${config.NODE_ENV}`);
 });
 
 stream.attachWebSocket(server);
@@ -19,7 +20,7 @@ sessionStore.startCleanup();
 if (hasMcp()) {
   getTools()
     .then(() => debug("MCP tools pre-loaded"))
-    .catch(console.error);
+    .catch(logger.error);
 }
 
 // Graceful shutdown

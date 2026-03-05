@@ -12,7 +12,7 @@ type SchemaConfig<
   params?: TParams;
 };
 
-export function validate<
+export default function validate<
   TBody extends z.ZodTypeAny,
   TQuery extends z.ZodTypeAny,
   TParams extends z.ZodTypeAny,
