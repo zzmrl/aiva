@@ -45,13 +45,12 @@ export async function replyToMessage(
   body: string,
 ): Promise<string> {
   debug("replyToMessage: from=%s body length=%d", from, body.length);
-  await repository.create({
+  const conversation = await repository.createInboundAndFetchConversation(
+    from,
+    to,
     body,
-    receiver: to,
-    sender: from,
-    direction: "inbound",
-  });
-  const conversation = await repository.findConversation(from, to, 30);
+    30,
+  );
   debug(
     "replyToMessage: conversation history=%d messages",
     conversation.length,
@@ -63,11 +62,8 @@ export async function replyToMessage(
     })),
   );
   debug("replyToMessage: LLM response length=%d", llmResponse.length);
-  await repository.create({
-    body: llmResponse,
-    receiver: from,
-    sender: to,
-    direction: "outbound",
-  });
+  repository
+    .create({ body: llmResponse, receiver: from, sender: to, direction: "outbound" })
+    .catch((err) => debug("replyToMessage: failed to save outbound message %O", err));
   return llmResponse;
 }

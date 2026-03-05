@@ -74,7 +74,7 @@ export async function findConversation(
   minutesAgo?: number,
 ): Promise<Message[]> {
   const ageFilter = minutesAgo
-    ? sql`AND created >= NOW() - INTERVAL '${minutesAgo} MINUTE'`
+    ? sql`AND created >= NOW() - (${minutesAgo} * INTERVAL '1 MINUTE')`
     : sql``;
   return sql`
     SELECT *
@@ -82,6 +82,35 @@ export async function findConversation(
     WHERE ((sender = ${phone1} AND receiver = ${phone2})
        OR (sender = ${phone2} AND receiver = ${phone1}))
     ${ageFilter}
+    ORDER BY created ASC
+  `;
+}
+
+/**
+ * Insert an inbound message and fetch the recent conversation in a single query.
+ * More efficient than separate create + findConversation calls.
+ * @param from - Sender phone number
+ * @param to - Receiver phone number
+ * @param body - Message body
+ * @param minutesAgo - Limit conversation history to messages created within X minutes
+ * @returns Messages in the conversation (including the newly inserted one), oldest first
+ */
+export async function createInboundAndFetchConversation(
+  from: string,
+  to: string,
+  body: string,
+  minutesAgo: number,
+): Promise<Message[]> {
+  return sql`
+    WITH new_msg AS (
+      INSERT INTO messages (body, receiver, sender, direction)
+      VALUES (${body}, ${to}, ${from}, 'inbound')
+      RETURNING *
+    )
+    SELECT * FROM messages
+    WHERE ((sender = ${from} AND receiver = ${to})
+       OR (sender = ${to} AND receiver = ${from}))
+      AND created >= NOW() - (${minutesAgo} * INTERVAL '1 MINUTE')
     ORDER BY created ASC
   `;
 }
