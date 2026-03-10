@@ -1,21 +1,20 @@
 import pino from "pino";
-import type { PrettyOptions } from "pino-pretty";
+import pretty from "pino-pretty";
 
 const level = process.env.LOG_LEVEL ?? "info";
 
-const transport: pino.LoggerOptions =
+const destination =
   process.env.NODE_ENV === "development"
-    ? {
-        transport: {
-          target: "pino-pretty",
-          options: {
-            colorize: true,
-            ignore: "module,hostname",
-            messageFormat: "{if module}<{module}> {end}{msg}",
-            singleLine: true,
-          } satisfies PrettyOptions,
+    ? pretty({
+        colorize: true,
+        ignore: "module,hostname",
+        messageFormat: (log, messageKey, _levelLabel, { colors }) => {
+          const module = log.module
+            ? colors.whiteBright(`[${log.module}]`) + " "
+            : "";
+          return `${module}${log[messageKey]}`;
         },
-      }
-    : {};
+      })
+    : undefined;
 
-export default pino({ ...transport, level });
+export default pino({ level }, destination);

@@ -51,7 +51,10 @@ export async function replyToMessage(
     body,
     30,
   );
-  logger.debug({ count: conversation.length }, "replyToMessage: conversation history");
+  logger.debug(
+    { count: conversation.length },
+    "replyToMessage: conversation history",
+  );
   const llmResponse = await smsCompletion.create(
     conversation.map((msg) => ({
       role: msg.direction === "outbound" ? "assistant" : "user",
@@ -60,7 +63,14 @@ export async function replyToMessage(
   );
   logger.debug({ length: llmResponse.length }, "replyToMessage: LLM response");
   repository
-    .create({ body: llmResponse, receiver: from, sender: to, direction: "outbound" })
-    .catch((err) => logger.error({ err }, "replyToMessage: failed to save outbound message"));
+    .create({
+      body: llmResponse,
+      receiver: from,
+      sender: to,
+      direction: "outbound",
+    })
+    .catch((err) =>
+      logger.error({ err }, "replyToMessage: failed to save outbound message"),
+    );
   return llmResponse;
 }
