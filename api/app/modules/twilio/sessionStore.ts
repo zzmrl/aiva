@@ -1,8 +1,8 @@
 import type { WebSocket } from "ws";
-import createDebug from "debug";
 import type { CompletionMessage } from "../llm/completions";
+import appLogger from "../../shared/logger";
 
-const debug = createDebug("api:twilio:session");
+const logger = appLogger.child({ module: "twilio:session" });
 
 export type RelaySession = {
   ws: WebSocket;
@@ -24,7 +24,7 @@ export function create(
   callSid: string,
   session: Omit<RelaySession, "createdAt">,
 ): void {
-  debug("Session created: callSid=%s from=%s to=%s", callSid, session.from, session.to);
+  logger.debug({ callSid, from: session.from, to: session.to }, "Session created");
   sessions.set(callSid, { ...session, createdAt: Date.now() });
 }
 
@@ -38,18 +38,18 @@ export function appendMessage(
 ): CompletionMessage[] {
   const session = sessions.get(callSid);
   if (!session) {
-    debug("appendMessage: no session for callSid=%s", callSid);
+    logger.debug({ callSid }, "appendMessage: no session");
     return [];
   }
   session.messages.push(message);
-  debug("appendMessage: callSid=%s role=%s total=%d", callSid, message.role, session.messages.length);
+  logger.debug({ callSid, role: message.role, total: session.messages.length }, "appendMessage");
   return session.messages;
 }
 
 export function remove(callSid: string): RelaySession | undefined {
   const session = sessions.get(callSid);
   if (session) {
-    debug("Session removed: callSid=%s messages=%d", callSid, session.messages.length);
+    logger.debug({ callSid, messages: session.messages.length }, "Session removed");
   }
   sessions.delete(callSid);
   return session;
@@ -75,7 +75,7 @@ export function cleanup(): number {
     }
   }
   if (removed > 0) {
-    debug("Cleanup: removed %d stale sessions, %d remaining", removed, sessions.size);
+    logger.debug({ removed, remaining: sessions.size }, "Cleanup: removed stale sessions");
   }
   return removed;
 }

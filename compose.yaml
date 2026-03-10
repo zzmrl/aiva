@@ -9,7 +9,7 @@ services:
     environment: &api-environment
       PORT: 3274
       NODE_ENV: production
-      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: $LOG_LEVEL
       DATABASE_URL: ${DATABASE_URL:?Database connection string}
       PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
       VENICE_API_KEY: ${VENICE_API_KEY:?Venice API key found in settings}

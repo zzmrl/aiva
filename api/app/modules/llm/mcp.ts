@@ -1,10 +1,10 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { ChatCompletionTool } from "openai/resources";
-import createDebug from "debug";
 import config from "../../config";
+import appLogger from "../../shared/logger";
 
-const debug = createDebug("api:llm:mcp");
+const logger = appLogger.child({ module: "llm:mcp" });
 
 const MCP_URL = "https://api.automate.it.com/mcp";
 
@@ -25,7 +25,7 @@ async function getClient(): Promise<Client> {
   });
 
   await client.connect(transport);
-  debug("Connected to MCP server at %s", MCP_URL);
+  logger.debug({ url: MCP_URL }, "Connected to MCP server");
   mcpClient = client;
   return client;
 }
@@ -45,7 +45,7 @@ export async function getTools(): Promise<ChatCompletionTool[]> {
     },
   }));
 
-  debug("Fetched %d tools from MCP server", toolsCache.length);
+  logger.debug({ count: toolsCache.length }, "Fetched tools from MCP server");
   return toolsCache;
 }
 
@@ -54,7 +54,7 @@ export async function callTool(
   args: Record<string, unknown>,
 ): Promise<string> {
   const client = await getClient();
-  debug("Calling MCP tool: %s", name);
+  logger.debug({ tool: name }, "Calling MCP tool");
 
   const result = await client.callTool({ name, arguments: args });
 
@@ -63,6 +63,6 @@ export async function callTool(
     .map((c) => c.text)
     .join("\n");
 
-  debug("MCP tool %s result: %d chars", name, content.length);
+  logger.debug({ tool: name, length: content.length }, "MCP tool result");
   return content;
 }

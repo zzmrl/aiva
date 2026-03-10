@@ -1,12 +1,12 @@
 import { WebSocketServer } from "ws";
 import type { WebSocket } from "ws";
 import type { Server } from "http";
-import createDebug from "debug";
 import * as sessionStore from "./sessionStore";
 import { voiceCompletion } from "../llm/completions";
 import { repository as messageRepository } from "../message";
+import appLogger from "../../shared/logger";
 
-const debug = createDebug("api:twilio:stream");
+const logger = appLogger.child({ module: "twilio:stream" });
 
 const wsToCallSid = new Map<WebSocket, string>();
 
@@ -48,25 +48,20 @@ export function attachWebSocket(server: Server): void {
   const wss = new WebSocketServer({ server, path: "/twilio/relay" });
 
   wss.on("connection", (ws) => {
-    debug("ConversationRelay WebSocket connection established");
+    logger.debug("ConversationRelay WebSocket connection established");
 
     ws.on("message", async (data) => {
       let msg: RelayEvent;
       try {
         msg = JSON.parse(data.toString());
       } catch (error) {
-        debug("Failed to parse WebSocket message: %O", error);
+        logger.debug({ err: error }, "Failed to parse WebSocket message");
         return;
       }
 
       switch (msg.type) {
         case "setup": {
-          debug(
-            "Setup: callSid=%s from=%s to=%s",
-            msg.callSid,
-            msg.from,
-            msg.to,
-          );
+          logger.debug({ callSid: msg.callSid, from: msg.from, to: msg.to }, "Setup");
           wsToCallSid.set(ws, msg.callSid);
           sessionStore.create(msg.callSid, {
             ws,
@@ -84,18 +79,14 @@ export function attachWebSocket(server: Server): void {
 
           const callSid = wsToCallSid.get(ws);
           if (!callSid) {
-            debug("prompt: no session found for this WebSocket");
+            logger.debug("prompt: no session found for this WebSocket");
             break;
           }
 
           const session = sessionStore.get(callSid);
           if (!session) break;
 
-          debug(
-            "prompt: callSid=%s length=%d",
-            callSid,
-            msg.voicePrompt.length,
-          );
+          logger.debug({ callSid, length: msg.voicePrompt.length }, "prompt");
 
           session.abortController?.abort();
           const abortController = new AbortController();
@@ -129,9 +120,9 @@ export function attachWebSocket(server: Server): void {
             }
           } catch (error: unknown) {
             if (isAbortError(error)) {
-              debug("LLM stream aborted: callSid=%s", callSid);
+              logger.debug({ callSid }, "LLM stream aborted");
             } else {
-              debug("LLM stream error: callSid=%s %O", callSid, error);
+              logger.error({ callSid, err: error }, "LLM stream error");
             }
           } finally {
             if (session.abortController === abortController) {
@@ -148,18 +139,14 @@ export function attachWebSocket(server: Server): void {
           const session = sessionStore.get(callSid);
           if (!session) break;
 
-          debug("interrupt: callSid=%s", callSid);
+          logger.debug({ callSid }, "interrupt");
           session.abortController?.abort();
           session.abortController = null;
           break;
         }
 
         case "error": {
-          debug(
-            "ConversationRelay error: callSid=%s description=%s",
-            msg.callSid,
-            msg.description,
-          );
+          logger.error({ callSid: msg.callSid, description: msg.description }, "ConversationRelay error");
           ws.close();
           break;
         }
@@ -167,16 +154,12 @@ export function attachWebSocket(server: Server): void {
     });
 
     ws.on("close", async () => {
-      debug("ConversationRelay WebSocket closed");
+      logger.debug("ConversationRelay WebSocket closed");
       wsToCallSid.delete(ws);
       const session = sessionStore.removeByWs(ws);
 
       if (session?.messages.length) {
-        debug(
-          "Saving %d messages for callSid=%s",
-          session.messages.length,
-          session.callSid,
-        );
+        logger.debug({ count: session.messages.length, callSid: session.callSid }, "Saving messages");
         for (const message of session.messages) {
           const isUser = message.role === "user";
           await messageRepository.create({
@@ -190,7 +173,7 @@ export function attachWebSocket(server: Server): void {
     });
 
     ws.on("error", (err) => {
-      debug("ConversationRelay WebSocket error: %O", err);
+      logger.error({ err }, "ConversationRelay WebSocket error");
       wsToCallSid.delete(ws);
       sessionStore.removeByWs(ws);
     });

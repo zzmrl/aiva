@@ -1,11 +1,10 @@
-import createDebug from "debug";
 import config from "./config";
 import { createApp } from "./factory";
 import { sessionStore, stream } from "./modules/twilio";
 import { hasMcp, getTools } from "./modules/llm/mcp";
-import logger from "./shared/logger";
+import appLogger from "./shared/logger";
 
-const debug = createDebug("api");
+const logger = appLogger.child({ module: "server" });
 
 const app = createApp();
 
@@ -19,15 +18,15 @@ sessionStore.startCleanup();
 
 if (hasMcp()) {
   getTools()
-    .then(() => debug("MCP tools pre-loaded"))
-    .catch(logger.error);
+    .then(() => logger.debug("MCP tools pre-loaded"))
+    .catch((err) => logger.error({ err }, "Failed to pre-load MCP tools"));
 }
 
 // Graceful shutdown
 process.on("SIGTERM", () => {
-  debug("SIGTERM signal received: closing HTTP server");
+  logger.debug("SIGTERM signal received: closing HTTP server");
   sessionStore.stopCleanup();
   server.close(() => {
-    debug("Server closed");
+    logger.debug("Server closed");
   });
 });

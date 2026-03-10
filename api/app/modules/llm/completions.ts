@@ -2,11 +2,11 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionMessageToolCall,
 } from "openai/resources";
-import createDebug from "debug";
 import client from "./client";
 import { hasMcp, getTools, callTool } from "./mcp";
+import appLogger from "../../shared/logger";
 
-const debug = createDebug("api:llm:completions");
+const logger = appLogger.child({ module: "llm:completions" });
 
 export type CompletionMessage = ChatCompletionMessageParam;
 
@@ -27,7 +27,7 @@ async function executeToolCalls(
   toolCalls: ChatCompletionMessageToolCall[],
   conversation: CompletionMessage[],
 ): Promise<void> {
-  debug("executing %d tool calls", toolCalls.length);
+  logger.debug({ count: toolCalls.length }, "executing tool calls");
   for (const toolCall of toolCalls) {
     if (toolCall.type !== "function") {
       continue;
@@ -52,7 +52,7 @@ export function defineCompletion(settings: CompletionSettings) {
 
   return {
     async create(messages: CompletionMessage[]): Promise<string> {
-      debug("create: model=%s messages=%d", model, messages.length);
+      logger.debug({ model, messages: messages.length }, "create");
       const tools = hasMcp() ? await getTools() : undefined;
       const conversation = [...messages];
       let includeTools = !!tools?.length;
@@ -75,7 +75,7 @@ export function defineCompletion(settings: CompletionSettings) {
           includeTools = false;
         } else {
           const content = choice?.message.content ?? "";
-          debug("create: response length=%d", content.length);
+          logger.debug({ length: content.length }, "create: response");
           return content;
         }
       }
@@ -85,7 +85,7 @@ export function defineCompletion(settings: CompletionSettings) {
       messages: CompletionMessage[],
       options?: { signal?: AbortSignal },
     ) {
-      debug("stream: model=%s messages=%d", model, messages.length);
+      logger.debug({ model, messages: messages.length }, "stream");
       const tools = hasMcp() ? await getTools() : undefined;
       const conversation = [...messages];
 
@@ -121,7 +121,7 @@ export function defineCompletion(settings: CompletionSettings) {
         totalLength += content.length;
         yield content;
       }
-      debug("stream: complete, total length=%d", totalLength);
+      logger.debug({ length: totalLength }, "stream: complete");
     },
   };
 }

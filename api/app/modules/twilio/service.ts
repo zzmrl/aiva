@@ -1,11 +1,11 @@
-import createDebug from "debug";
 import * as messageService from "../message/service";
 import twilio from "twilio";
+import appLogger from "../../shared/logger";
 
-const debug = createDebug("api:twilio:service");
+const logger = appLogger.child({ module: "twilio:service" });
 
 export function handleIncomingCall(host: string): string {
-  debug("Incoming call: host=%s", host);
+  logger.debug({ host }, "Incoming call");
   const twiml = new twilio.twiml.VoiceResponse();
 
   const connect = twiml.connect();
@@ -23,15 +23,15 @@ export async function handleIncomingSms(
   from: string,
   body: string,
 ): Promise<string> {
-  debug("Incoming SMS: from=%s to=%s body length=%d", from, to, body.length);
+  logger.debug({ from, to, length: body.length }, "Incoming SMS");
   const twiml = new twilio.twiml.MessagingResponse();
 
   try {
     const message = await messageService.replyToMessage(to, from, body);
-    debug("SMS reply sent: to=%s length=%d", from, message.length);
+    logger.debug({ to: from, length: message.length }, "SMS reply sent");
     twiml.message(message);
   } catch (error) {
-    debug("Failed to handle SMS from %s: %O", from, error);
+    logger.error({ from, err: error }, "Failed to handle SMS");
     twiml.message(
       "Sorry, I'm having trouble right now. Please try again later.",
     );

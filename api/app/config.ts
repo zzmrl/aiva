@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { file } from "bun";
-import createDebug from "debug";
+import appLogger from "./shared/logger";
 
-const debug = createDebug("api:config");
+const logger = appLogger.child({ module: "config" });
 
 async function resolveSecrets(
   env: NodeJS.ProcessEnv,
@@ -40,16 +40,16 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(environment);
 
 if (!parsed.success) {
-  console.error("Invalid environment:", z.treeifyError(parsed.error));
+  logger.error(z.treeifyError(parsed.error), "Invalid environment");
   process.exit(1);
 }
 
 const config = parsed.data;
 
-debug("Config loaded");
+logger.debug("Config loaded");
 
 if (!config.TWILIO_AUTH_TOKEN) {
-  console.warn(
+  logger.warn(
     "TWILIO_AUTH_TOKEN is not set — Twilio webhook signature validation is disabled",
   );
 }

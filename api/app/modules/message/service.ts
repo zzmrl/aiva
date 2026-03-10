@@ -1,9 +1,9 @@
-import createDebug from "debug";
 import { NotFoundError } from "../../shared/errors";
 import { smsCompletion } from "../llm/completions";
 import { repository, type Conversation, type Message } from ".";
+import appLogger from "../../shared/logger";
 
-const debug = createDebug("api:message:service");
+const logger = appLogger.child({ module: "message:service" });
 
 export async function create(
   input: repository.CreateMessageInput,
@@ -44,26 +44,23 @@ export async function replyToMessage(
   from: string,
   body: string,
 ): Promise<string> {
-  debug("replyToMessage: from=%s body length=%d", from, body.length);
+  logger.debug({ from, length: body.length }, "replyToMessage");
   const conversation = await repository.createInboundAndFetchConversation(
     from,
     to,
     body,
     30,
   );
-  debug(
-    "replyToMessage: conversation history=%d messages",
-    conversation.length,
-  );
+  logger.debug({ count: conversation.length }, "replyToMessage: conversation history");
   const llmResponse = await smsCompletion.create(
     conversation.map((msg) => ({
       role: msg.direction === "outbound" ? "assistant" : "user",
       content: msg.body,
     })),
   );
-  debug("replyToMessage: LLM response length=%d", llmResponse.length);
+  logger.debug({ length: llmResponse.length }, "replyToMessage: LLM response");
   repository
     .create({ body: llmResponse, receiver: from, sender: to, direction: "outbound" })
-    .catch((err) => debug("replyToMessage: failed to save outbound message %O", err));
+    .catch((err) => logger.error({ err }, "replyToMessage: failed to save outbound message"));
   return llmResponse;
 }
