@@ -24,7 +24,10 @@ export function create(
   callSid: string,
   session: Omit<RelaySession, "createdAt">,
 ): void {
-  logger.debug({ callSid, from: session.from, to: session.to }, "Session created");
+  logger.debug(
+    { callSid, from: session.from, to: session.to },
+    "Session created",
+  );
   sessions.set(callSid, { ...session, createdAt: Date.now() });
 }
 
@@ -42,14 +45,20 @@ export function appendMessage(
     return [];
   }
   session.messages.push(message);
-  logger.debug({ callSid, role: message.role, total: session.messages.length }, "appendMessage");
+  logger.debug(
+    { callSid, role: message.role, total: session.messages.length },
+    "appendMessage",
+  );
   return session.messages;
 }
 
 export function remove(callSid: string): RelaySession | undefined {
   const session = sessions.get(callSid);
   if (session) {
-    logger.debug({ callSid, messages: session.messages.length }, "Session removed");
+    logger.debug(
+      { callSid, messages: session.messages.length },
+      "Session removed",
+    );
   }
   sessions.delete(callSid);
   return session;
@@ -75,7 +84,10 @@ export function cleanup(): number {
     }
   }
   if (removed > 0) {
-    logger.debug({ removed, remaining: sessions.size }, "Cleanup: removed stale sessions");
+    logger.debug(
+      { removed, remaining: sessions.size },
+      "Cleanup: removed stale sessions",
+    );
   }
   return removed;
 }

@@ -61,7 +61,10 @@ export function attachWebSocket(server: Server): void {
 
       switch (msg.type) {
         case "setup": {
-          logger.debug({ callSid: msg.callSid, from: msg.from, to: msg.to }, "Setup");
+          logger.debug(
+            { callSid: msg.callSid, from: msg.from, to: msg.to },
+            "Setup",
+          );
           wsToCallSid.set(ws, msg.callSid);
           sessionStore.create(msg.callSid, {
             ws,
@@ -146,7 +149,10 @@ export function attachWebSocket(server: Server): void {
         }
 
         case "error": {
-          logger.error({ callSid: msg.callSid, description: msg.description }, "ConversationRelay error");
+          logger.error(
+            { callSid: msg.callSid, description: msg.description },
+            "ConversationRelay error",
+          );
           ws.close();
           break;
         }
@@ -159,7 +165,10 @@ export function attachWebSocket(server: Server): void {
       const session = sessionStore.removeByWs(ws);
 
       if (session?.messages.length) {
-        logger.debug({ count: session.messages.length, callSid: session.callSid }, "Saving messages");
+        logger.debug(
+          { count: session.messages.length, callSid: session.callSid },
+          "Saving messages",
+        );
         for (const message of session.messages) {
           const isUser = message.role === "user";
           await messageRepository.create({
