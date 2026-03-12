@@ -194,6 +194,18 @@ The `secrets/` directory contains plain-text secret files (`postgres_password`, 
 - `PUBLIC_HOST` - Public hostname
 - `API_HOST` - Internal API hostname (dev: `api-dev`)
 
+## Code Style
+
+All code must conform to the Prettier defaults used by `api/.prettierrc.json` (empty config = all defaults):
+
+- **Print width**: 80
+- **Tab width**: 2 spaces
+- **Semicolons**: yes
+- **Quotes**: double quotes for strings
+- **Trailing commas**: all (ES5+: objects, arrays, function params)
+- **Bracket spacing**: yes (`{ foo }`)
+- **Arrow function parens**: always (`(x) => x`)
+
 ## Development Notes
 
 ### Webhook Testing
