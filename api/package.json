@@ -13,11 +13,12 @@
     "build": "tsc",
     "start": "bun --sql-preconnect app/index.ts",
     "debug": "DEBUG=api bun dev",
-    "dev": "bun --watch run app/index.ts",
+    "dev": "bun --watch app/index.ts",
     "test": "bun test",
     "test:watch": "bun run test --watch",
     "lint": "eslint app/modules app/shared --ext .ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write app"
   },
   "keywords": [],
   "author": "zmrl",
