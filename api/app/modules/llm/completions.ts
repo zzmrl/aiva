@@ -50,63 +50,46 @@ export function defineCompletion(settings: CompletionSettings) {
   const systemMessage = { role: "system" as const, content: system };
   const baseParams = { model, ...params };
 
+  // Resolves one round of MCP tool calls (if any) before the final completion.
+  async function prepareConversation(
+    messages: CompletionMessage[],
+  ): Promise<CompletionMessage[]> {
+    const conversation = [...messages];
+    const tools = hasMcp() ? await getTools() : undefined;
+    if (!tools?.length) return conversation;
+
+    const response = await client.chat.completions.create({
+      ...baseParams,
+      messages: [systemMessage, ...conversation],
+      tools,
+    });
+    const choice = response.choices[0];
+    if (choice?.finish_reason === "tool_calls" && choice.message.tool_calls) {
+      conversation.push(choice.message);
+      await executeToolCalls(choice.message.tool_calls, conversation);
+    }
+    return conversation;
+  }
+
   return {
     async create(messages: CompletionMessage[]): Promise<string> {
-      logger.debug({ model, messages: messages.length }, "create");
-      const tools = hasMcp() ? await getTools() : undefined;
-      const conversation = [...messages];
-      let includeTools = !!tools?.length;
-
-      while (true) {
-        const response = await client.chat.completions.create({
-          ...baseParams,
-          messages: [systemMessage, ...conversation],
-          ...(includeTools ? { tools } : {}),
-        });
-
-        const choice = response.choices[0];
-
-        if (
-          choice?.finish_reason === "tool_calls" &&
-          choice.message.tool_calls
-        ) {
-          conversation.push(choice.message);
-          await executeToolCalls(choice.message.tool_calls, conversation);
-          includeTools = false;
-        } else {
-          const content = choice?.message.content ?? "";
-          logger.debug({ length: content.length }, "create: response");
-          return content;
-        }
-      }
+      logger.debug({ model, messages: messages.length }, "create()");
+      const conversation = await prepareConversation(messages);
+      const response = await client.chat.completions.create({
+        ...baseParams,
+        messages: [systemMessage, ...conversation],
+      });
+      const content = response.choices[0]?.message.content ?? "";
+      logger.debug({ length: content.length }, "create() response");
+      return content;
     },
 
     async *stream(
       messages: CompletionMessage[],
       options?: { signal?: AbortSignal },
     ) {
-      logger.debug({ model, messages: messages.length }, "stream");
-      const tools = hasMcp() ? await getTools() : undefined;
-      const conversation = [...messages];
-
-      // Non-streaming tool resolution phase
-      if (tools?.length) {
-        const response = await client.chat.completions.create({
-          ...baseParams,
-          messages: [systemMessage, ...conversation],
-          tools,
-        });
-        const choice = response.choices[0];
-        if (
-          choice?.finish_reason === "tool_calls" &&
-          choice.message.tool_calls
-        ) {
-          conversation.push(choice.message);
-          await executeToolCalls(choice.message.tool_calls, conversation);
-        }
-      }
-
-      // Stream the final response
+      logger.debug({ model, messages: messages.length }, "stream()");
+      const conversation = await prepareConversation(messages);
       const stream = await client.chat.completions.create(
         {
           ...baseParams,
@@ -121,7 +104,7 @@ export function defineCompletion(settings: CompletionSettings) {
         totalLength += content.length;
         yield content;
       }
-      logger.debug({ length: totalLength }, "stream: complete");
+      logger.debug({ length: totalLength }, "stream() complete");
     },
   };
 }
