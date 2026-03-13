@@ -27,14 +27,6 @@ export async function getById(id: number): Promise<Message> {
   return message;
 }
 
-export async function listConversation(
-  phone1: string,
-  phone2: string,
-  minutesAgo?: number,
-): Promise<Message[]> {
-  return repository.findConversation(phone1, phone2, minutesAgo);
-}
-
 export async function listConversations(): Promise<Conversation[]> {
   return repository.findConversations();
 }
@@ -49,7 +41,6 @@ export async function replyToMessage(
     from,
     to,
     body,
-    30,
   );
   logger.debug(
     { count: conversation.length },
