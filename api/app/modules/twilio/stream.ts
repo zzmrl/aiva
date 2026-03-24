@@ -75,10 +75,15 @@ async function handlePrompt(ws: WebSocket, msg: PromptEvent): Promise<void> {
     content: msg.voicePrompt,
   });
 
+  const onToolCall = () => {
+    ws.send(JSON.stringify({ type: "text", token: "One moment...", last: false }));
+  };
+
   let fullResponse = "";
   try {
     for await (const chunk of voiceCompletion.stream(messages, {
       signal: abortController.signal,
+      onToolCall,
     })) {
       if (abortController.signal.aborted) break;
       fullResponse += chunk;

@@ -53,6 +53,7 @@ export function defineCompletion(settings: CompletionSettings) {
   // Resolves one round of MCP tool calls (if any) before the final completion.
   async function prepareConversation(
     messages: CompletionMessage[],
+    onToolCall?: () => void | Promise<void>,
   ): Promise<CompletionMessage[]> {
     const conversation = [...messages];
     const tools = hasMcp() ? await getTools() : undefined;
@@ -65,6 +66,7 @@ export function defineCompletion(settings: CompletionSettings) {
     });
     const choice = response.choices[0];
     if (choice?.finish_reason === "tool_calls" && choice.message.tool_calls) {
+      await onToolCall?.();
       conversation.push(choice.message);
       await executeToolCalls(choice.message.tool_calls, conversation);
     }
@@ -86,10 +88,10 @@ export function defineCompletion(settings: CompletionSettings) {
 
     async *stream(
       messages: CompletionMessage[],
-      options?: { signal?: AbortSignal },
+      options?: { signal?: AbortSignal; onToolCall?: () => void | Promise<void> },
     ) {
       logger.debug({ model, messages: messages.length }, "stream()");
-      const conversation = await prepareConversation(messages);
+      const conversation = await prepareConversation(messages, options?.onToolCall);
       const stream = await client.chat.completions.create(
         {
           ...baseParams,
