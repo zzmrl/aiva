@@ -13,12 +13,16 @@ const mockWs2 = {
   close: () => {},
 } as unknown as import("ws").WebSocket;
 
+const mockWsUnknown = {
+  send: () => {},
+  on: () => {},
+  close: () => {},
+} as unknown as import("ws").WebSocket;
+
 describe("sessions", () => {
   beforeEach(() => {
-    // Clean up any existing sessions
-    sessions.remove("test-call-1");
-    sessions.remove("test-call-2");
-    sessions.remove("test-call-3");
+    sessions.remove(mockWs);
+    sessions.remove(mockWs2);
   });
 
   afterEach(() => {
@@ -27,7 +31,7 @@ describe("sessions", () => {
 
   describe("create and get", () => {
     it("should store and retrieve a session", () => {
-      sessions.create("test-call-1", {
+      sessions.create(mockWs, {
         ws: mockWs,
         abortController: null,
         callSid: "test-call-1",
@@ -36,7 +40,7 @@ describe("sessions", () => {
         messages: [],
       });
 
-      const session = sessions.get("test-call-1");
+      const session = sessions.get(mockWs);
       expect(session).toBeDefined();
       expect(session?.callSid).toBe("test-call-1");
       expect(session?.from).toBe("+15551234567");
@@ -46,14 +50,14 @@ describe("sessions", () => {
     });
 
     it("should return undefined for non-existent session", () => {
-      const session = sessions.get("non-existent");
+      const session = sessions.get(mockWsUnknown);
       expect(session).toBeUndefined();
     });
   });
 
   describe("appendMessage", () => {
     it("should append a message and return all messages", () => {
-      sessions.create("test-call-1", {
+      sessions.create(mockWs, {
         ws: mockWs,
         abortController: null,
         callSid: "test-call-1",
@@ -62,7 +66,7 @@ describe("sessions", () => {
         messages: [],
       });
 
-      const messages = sessions.appendMessage("test-call-1", {
+      const messages = sessions.appendMessage(mockWs, {
         role: "user",
         content: "Hello",
       });
@@ -72,7 +76,7 @@ describe("sessions", () => {
     });
 
     it("should accumulate messages", () => {
-      sessions.create("test-call-1", {
+      sessions.create(mockWs, {
         ws: mockWs,
         abortController: null,
         callSid: "test-call-1",
@@ -81,11 +85,8 @@ describe("sessions", () => {
         messages: [],
       });
 
-      sessions.appendMessage("test-call-1", {
-        role: "user",
-        content: "Hello",
-      });
-      const messages = sessions.appendMessage("test-call-1", {
+      sessions.appendMessage(mockWs, { role: "user", content: "Hello" });
+      const messages = sessions.appendMessage(mockWs, {
         role: "assistant",
         content: "Hi there!",
       });
@@ -94,7 +95,7 @@ describe("sessions", () => {
     });
 
     it("should return empty array for non-existent session", () => {
-      const messages = sessions.appendMessage("non-existent", {
+      const messages = sessions.appendMessage(mockWsUnknown, {
         role: "user",
         content: "Hello",
       });
@@ -104,7 +105,7 @@ describe("sessions", () => {
 
   describe("remove", () => {
     it("should remove and return the session", () => {
-      sessions.create("test-call-1", {
+      sessions.create(mockWs, {
         ws: mockWs,
         abortController: null,
         callSid: "test-call-1",
@@ -113,44 +114,19 @@ describe("sessions", () => {
         messages: [],
       });
 
-      const removed = sessions.remove("test-call-1");
+      const removed = sessions.remove(mockWs);
       expect(removed).toBeDefined();
       expect(removed?.callSid).toBe("test-call-1");
-
-      const session = sessions.get("test-call-1");
-      expect(session).toBeUndefined();
+      expect(sessions.get(mockWs)).toBeUndefined();
     });
 
     it("should return undefined when removing non-existent session", () => {
-      const removed = sessions.remove("non-existent");
-      expect(removed).toBeUndefined();
-    });
-  });
-
-  describe("removeByWs", () => {
-    it("should remove and return the session matching the WebSocket", () => {
-      sessions.create("test-call-1", {
-        ws: mockWs,
-        abortController: null,
-        callSid: "test-call-1",
-        from: "+15551234567",
-        to: "+15559876543",
-        messages: [],
-      });
-
-      const removed = sessions.removeByWs(mockWs);
-      expect(removed).toBeDefined();
-      expect(removed?.callSid).toBe("test-call-1");
-      expect(sessions.get("test-call-1")).toBeUndefined();
-    });
-
-    it("should return undefined when no session matches the WebSocket", () => {
-      const removed = sessions.removeByWs(mockWs2);
+      const removed = sessions.remove(mockWsUnknown);
       expect(removed).toBeUndefined();
     });
 
     it("should only remove the matching session", () => {
-      sessions.create("test-call-1", {
+      sessions.create(mockWs, {
         ws: mockWs,
         abortController: null,
         callSid: "test-call-1",
@@ -158,7 +134,7 @@ describe("sessions", () => {
         to: "+15559876543",
         messages: [],
       });
-      sessions.create("test-call-2", {
+      sessions.create(mockWs2, {
         ws: mockWs2,
         abortController: null,
         callSid: "test-call-2",
@@ -167,15 +143,15 @@ describe("sessions", () => {
         messages: [],
       });
 
-      sessions.removeByWs(mockWs);
-      expect(sessions.get("test-call-1")).toBeUndefined();
-      expect(sessions.get("test-call-2")).toBeDefined();
+      sessions.remove(mockWs);
+      expect(sessions.get(mockWs)).toBeUndefined();
+      expect(sessions.get(mockWs2)).toBeDefined();
     });
   });
 
   describe("cleanup", () => {
     it("should remove sessions older than 30 minutes", () => {
-      sessions.create("test-call-1", {
+      sessions.create(mockWs, {
         ws: mockWs,
         abortController: null,
         callSid: "test-call-1",
@@ -184,19 +160,18 @@ describe("sessions", () => {
         messages: [],
       });
 
-      // Manually backdate the createdAt
-      const session = sessions.get("test-call-1");
+      const session = sessions.get(mockWs);
       expect(session).toBeDefined();
       if (!session) return;
       session.createdAt = Date.now() - 31 * 60 * 1000;
 
       const removed = sessions.cleanup();
       expect(removed).toBe(1);
-      expect(sessions.get("test-call-1")).toBeUndefined();
+      expect(sessions.get(mockWs)).toBeUndefined();
     });
 
     it("should not remove sessions younger than 30 minutes", () => {
-      sessions.create("test-call-1", {
+      sessions.create(mockWs, {
         ws: mockWs,
         abortController: null,
         callSid: "test-call-1",
@@ -207,11 +182,11 @@ describe("sessions", () => {
 
       const removed = sessions.cleanup();
       expect(removed).toBe(0);
-      expect(sessions.get("test-call-1")).toBeDefined();
+      expect(sessions.get(mockWs)).toBeDefined();
     });
 
     it("should only remove expired sessions", () => {
-      sessions.create("test-call-1", {
+      sessions.create(mockWs, {
         ws: mockWs,
         abortController: null,
         callSid: "test-call-1",
@@ -219,7 +194,7 @@ describe("sessions", () => {
         to: "+15559876543",
         messages: [],
       });
-      sessions.create("test-call-2", {
+      sessions.create(mockWs2, {
         ws: mockWs2,
         abortController: null,
         callSid: "test-call-2",
@@ -228,23 +203,22 @@ describe("sessions", () => {
         messages: [],
       });
 
-      // Only expire the first session
-      const session = sessions.get("test-call-1");
+      const session = sessions.get(mockWs);
       expect(session).toBeDefined();
       if (!session) return;
       session.createdAt = Date.now() - 31 * 60 * 1000;
 
       const removed = sessions.cleanup();
       expect(removed).toBe(1);
-      expect(sessions.get("test-call-1")).toBeUndefined();
-      expect(sessions.get("test-call-2")).toBeDefined();
+      expect(sessions.get(mockWs)).toBeUndefined();
+      expect(sessions.get(mockWs2)).toBeDefined();
     });
   });
 
   describe("createdAt", () => {
     it("should automatically set createdAt on create", () => {
       const before = Date.now();
-      sessions.create("test-call-1", {
+      sessions.create(mockWs, {
         ws: mockWs,
         abortController: null,
         callSid: "test-call-1",
@@ -254,7 +228,7 @@ describe("sessions", () => {
       });
       const after = Date.now();
 
-      const session = sessions.get("test-call-1");
+      const session = sessions.get(mockWs);
       expect(session?.createdAt).toBeGreaterThanOrEqual(before);
       expect(session?.createdAt).toBeLessThanOrEqual(after);
     });

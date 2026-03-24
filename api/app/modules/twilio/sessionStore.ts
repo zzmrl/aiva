@@ -17,76 +17,59 @@ export type RelaySession = {
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
-const sessions = new Map<string, RelaySession>();
+const sessions = new Map<WebSocket, RelaySession>();
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
 export function create(
-  callSid: string,
+  ws: WebSocket,
   session: Omit<RelaySession, "createdAt">,
 ): void {
   logger.debug(
-    { callSid, from: session.from, to: session.to },
+    { callSid: session.callSid, from: session.from, to: session.to },
     "Session created",
   );
-  sessions.set(callSid, { ...session, createdAt: Date.now() });
+  sessions.set(ws, { ...session, createdAt: Date.now() });
 }
 
-export function get(callSid: string): RelaySession | undefined {
-  return sessions.get(callSid);
+export function get(ws: WebSocket): RelaySession | undefined {
+  return sessions.get(ws);
 }
 
 export function appendMessage(
-  callSid: string,
+  ws: WebSocket,
   message: CompletionMessage,
 ): CompletionMessage[] {
-  const session = sessions.get(callSid);
+  const session = sessions.get(ws);
   if (!session) {
-    logger.debug({ callSid }, "appendMessage: no session");
+    logger.debug("appendMessage: no session");
     return [];
   }
   session.messages.push(message);
   logger.debug(
-    { callSid, role: message.role, total: session.messages.length },
+    { callSid: session.callSid, role: message.role, total: session.messages.length },
     "appendMessage",
   );
   return session.messages;
 }
 
-export function remove(callSid: string): RelaySession | undefined {
-  const session = sessions.get(callSid);
+export function remove(ws: WebSocket): RelaySession | undefined {
+  const session = sessions.get(ws);
   if (session) {
     logger.debug(
-      { callSid, messages: session.messages.length },
+      { callSid: session.callSid, messages: session.messages.length },
       "Session removed",
     );
+    sessions.delete(ws);
   }
-  sessions.delete(callSid);
   return session;
-}
-
-export function getByWs(ws: WebSocket): RelaySession | undefined {
-  for (const session of sessions.values()) {
-    if (session.ws === ws) return session;
-  }
-  return undefined;
-}
-
-export function removeByWs(ws: WebSocket): RelaySession | undefined {
-  for (const [callSid, session] of sessions) {
-    if (session.ws === ws) {
-      sessions.delete(callSid);
-      return session;
-    }
-  }
-  return undefined;
 }
 
 export function cleanup(): number {
   const now = Date.now();
   let removed = 0;
-  for (const [callSid, session] of sessions) {
+  for (const [ws, session] of sessions) {
     if (now - session.createdAt >= SESSION_TTL_MS) {
-      sessions.delete(callSid);
+      sessions.delete(ws);
       removed++;
     }
   }

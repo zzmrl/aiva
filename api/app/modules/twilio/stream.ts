@@ -44,7 +44,7 @@ function isAbortError(err: unknown): boolean {
 
 function handleSetup(ws: WebSocket, msg: SetupEvent): void {
   logger.debug({ callSid: msg.callSid, from: msg.from, to: msg.to }, "Setup");
-  sessionStore.create(msg.callSid, {
+  sessionStore.create(ws, {
     ws,
     callSid: msg.callSid,
     from: msg.from,
@@ -57,7 +57,7 @@ function handleSetup(ws: WebSocket, msg: SetupEvent): void {
 async function handlePrompt(ws: WebSocket, msg: PromptEvent): Promise<void> {
   if (!msg.last) return;
 
-  const session = sessionStore.getByWs(ws);
+  const session = sessionStore.get(ws);
   if (!session) {
     logger.debug("prompt: no session found for this WebSocket");
     return;
@@ -70,7 +70,7 @@ async function handlePrompt(ws: WebSocket, msg: PromptEvent): Promise<void> {
   const abortController = new AbortController();
   session.abortController = abortController;
 
-  const messages = sessionStore.appendMessage(callSid, {
+  const messages = sessionStore.appendMessage(ws, {
     role: "user",
     content: msg.voicePrompt,
   });
@@ -88,7 +88,7 @@ async function handlePrompt(ws: WebSocket, msg: PromptEvent): Promise<void> {
     if (!abortController.signal.aborted) {
       ws.send(JSON.stringify({ type: "text", token: "", last: true }));
       if (fullResponse) {
-        sessionStore.appendMessage(callSid, {
+        sessionStore.appendMessage(ws, {
           role: "assistant",
           content: fullResponse,
         });
@@ -108,7 +108,7 @@ async function handlePrompt(ws: WebSocket, msg: PromptEvent): Promise<void> {
 }
 
 function handleInterrupt(ws: WebSocket): void {
-  const session = sessionStore.getByWs(ws);
+  const session = sessionStore.get(ws);
   if (!session) return;
 
   logger.debug({ callSid: session.callSid }, "interrupt");
@@ -126,7 +126,7 @@ function handleRelayError(ws: WebSocket, msg: ErrorEvent): void {
 
 async function handleClose(ws: WebSocket): Promise<void> {
   logger.debug("ConversationRelay WebSocket closed");
-  const session = sessionStore.removeByWs(ws);
+  const session = sessionStore.remove(ws);
 
   if (!session?.messages.length) return;
 
@@ -135,21 +135,12 @@ async function handleClose(ws: WebSocket): Promise<void> {
     "Saving messages",
   );
   for (const message of session.messages) {
-    const params =
-      message.role === "user"
-        ? {
-            sender: session.from,
-            receiver: session.to,
-            direction: "inbound" as const,
-          }
-        : {
-            sender: session.to,
-            receiver: session.from,
-            direction: "outbound" as const,
-          };
+    const isUser = message.role === "user";
     await messageRepository.create({
-      ...params,
+      sender: isUser ? session.from : session.to,
+      receiver: isUser ? session.to : session.from,
       body: message.content?.toString() ?? "",
+      direction: isUser ? "inbound" : "outbound",
     });
   }
 }
@@ -185,7 +176,7 @@ export function attachWebSocket(server: Server): WebSocketServer {
 
     ws.on("error", (err) => {
       logger.error({ err }, "ConversationRelay WebSocket error");
-      sessionStore.removeByWs(ws);
+      sessionStore.remove(ws);
     });
   });
 
