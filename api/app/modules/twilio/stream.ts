@@ -44,7 +44,7 @@ function isAbortError(err: unknown): boolean {
   return err instanceof Error && err.name === "AbortError";
 }
 
-export function attachWebSocket(server: Server): void {
+export function attachWebSocket(server: Server): WebSocketServer {
   const wss = new WebSocketServer({ server, path: "/twilio/relay" });
 
   wss.on("connection", (ws) => {
@@ -54,8 +54,8 @@ export function attachWebSocket(server: Server): void {
       let msg: RelayEvent;
       try {
         msg = JSON.parse(data.toString());
-      } catch (error) {
-        logger.debug({ err: error }, "Failed to parse WebSocket message");
+      } catch (err) {
+        logger.debug({ err }, "Failed to parse WebSocket message");
         return;
       }
 
@@ -121,11 +121,11 @@ export function attachWebSocket(server: Server): void {
                 });
               }
             }
-          } catch (error: unknown) {
-            if (isAbortError(error)) {
+          } catch (err: unknown) {
+            if (isAbortError(err)) {
               logger.debug({ callSid }, "LLM stream aborted");
             } else {
-              logger.error({ callSid, err: error }, "LLM stream error");
+              logger.error({ callSid, err }, "LLM stream error");
             }
           } finally {
             if (session.abortController === abortController) {
@@ -187,4 +187,6 @@ export function attachWebSocket(server: Server): void {
       sessionStore.removeByWs(ws);
     });
   });
+
+  return wss;
 }

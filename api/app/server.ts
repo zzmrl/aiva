@@ -13,7 +13,7 @@ const server = app.listen(config.PORT, () => {
   logger.info(`Environment: ${config.NODE_ENV}`);
 });
 
-stream.attachWebSocket(server);
+const wss = stream.attachWebSocket(server);
 sessionStore.startCleanup();
 
 if (hasMcp()) {
@@ -26,7 +26,9 @@ if (hasMcp()) {
 process.on("SIGTERM", () => {
   logger.debug("SIGTERM signal received: closing HTTP server");
   sessionStore.stopCleanup();
+  wss.close();
   server.close(() => {
     logger.debug("Server closed");
+    process.exit(0);
   });
 });
