@@ -88,10 +88,16 @@ export function defineCompletion(settings: CompletionSettings) {
 
     async *stream(
       messages: CompletionMessage[],
-      options?: { signal?: AbortSignal; onToolCall?: () => void | Promise<void> },
+      options?: {
+        signal?: AbortSignal;
+        onToolCall?: () => void | Promise<void>;
+      },
     ) {
       logger.debug({ model, messages: messages.length }, "stream()");
-      const conversation = await prepareConversation(messages, options?.onToolCall);
+      const conversation = await prepareConversation(
+        messages,
+        options?.onToolCall,
+      );
       const stream = await client.chat.completions.create(
         {
           ...baseParams,
@@ -131,6 +137,12 @@ export const voiceCompletion = defineCompletion({
     Ensure that numbers, symbols, and abbreviations are expanded for clarity when read aloud.
     Expand all abbreviations to their full spoken forms.
 
+    When the response contains a list, convert it to natural spoken language.
+    Do not say "bullet" or "dash" or any list punctuation markers.
+    For short lists (2-3 items), use natural connectives: "first... then... and finally..."
+    For longer lists, introduce with a phrase like "here are the steps:" or "there are four options:" and then read each item as a sentence, pausing naturally between them.
+    Numbered lists should be read as "first", "second", "third", etc., not as "one", "two", "three".
+
     Example input and output:
     "$42.50" → "forty-two dollars and fifty cents"
     "£1,001.32" → "one thousand and one pounds and thirty-two pence"
@@ -152,6 +164,11 @@ export const voiceCompletion = defineCompletion({
     "123 Main St, Anytown, USA" → "one two three Main Street, Anytown, United States of America"
     "14:30" → "two thirty PM"
     "01/02/2023" → "January second, two-thousand twenty-three" or "the first of February, two-thousand twenty-three", depending on locale of the user
+
+    "- Apples\n- Bananas\n- Cherries" → "Apples, bananas, and cherries."
+    "* Apples\n* Bananas\n* Cherries" → "Apples, bananas, and cherries."
+    "1. Preheat oven\n2. Mix ingredients\n3. Bake for 30 minutes" → "First, preheat the oven. Then mix the ingredients. Finally, bake for thirty minutes."
+    "There are three options:\n- Option A\n- Option B\n- Option C" → "There are three options: Option A, Option B, or Option C."
 `,
   params: { venice_parameters: { enable_web_search: "auto" } },
 });
