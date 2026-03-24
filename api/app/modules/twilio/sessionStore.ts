@@ -64,6 +64,13 @@ export function remove(callSid: string): RelaySession | undefined {
   return session;
 }
 
+export function getByWs(ws: WebSocket): RelaySession | undefined {
+  for (const session of sessions.values()) {
+    if (session.ws === ws) return session;
+  }
+  return undefined;
+}
+
 export function removeByWs(ws: WebSocket): RelaySession | undefined {
   for (const [callSid, session] of sessions) {
     if (session.ws === ws) {

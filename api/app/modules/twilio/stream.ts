@@ -8,8 +8,6 @@ import appLogger from "../../shared/logger";
 
 const logger = appLogger.child({ module: "twilio:stream" });
 
-const wsToCallSid = new Map<WebSocket, string>();
-
 type SetupEvent = {
   type: "setup";
   callSid: string;
@@ -44,6 +42,118 @@ function isAbortError(err: unknown): boolean {
   return err instanceof Error && err.name === "AbortError";
 }
 
+function handleSetup(ws: WebSocket, msg: SetupEvent): void {
+  logger.debug({ callSid: msg.callSid, from: msg.from, to: msg.to }, "Setup");
+  sessionStore.create(msg.callSid, {
+    ws,
+    callSid: msg.callSid,
+    from: msg.from,
+    to: msg.to,
+    messages: [],
+    abortController: null,
+  });
+}
+
+async function handlePrompt(ws: WebSocket, msg: PromptEvent): Promise<void> {
+  if (!msg.last) return;
+
+  const session = sessionStore.getByWs(ws);
+  if (!session) {
+    logger.debug("prompt: no session found for this WebSocket");
+    return;
+  }
+
+  const { callSid } = session;
+  logger.debug({ callSid, length: msg.voicePrompt.length }, "prompt");
+
+  session.abortController?.abort();
+  const abortController = new AbortController();
+  session.abortController = abortController;
+
+  const messages = sessionStore.appendMessage(callSid, {
+    role: "user",
+    content: msg.voicePrompt,
+  });
+
+  let fullResponse = "";
+  try {
+    for await (const chunk of voiceCompletion.stream(messages, {
+      signal: abortController.signal,
+    })) {
+      if (abortController.signal.aborted) break;
+      fullResponse += chunk;
+      ws.send(JSON.stringify({ type: "text", token: chunk, last: false }));
+    }
+
+    if (!abortController.signal.aborted) {
+      ws.send(JSON.stringify({ type: "text", token: "", last: true }));
+      if (fullResponse) {
+        sessionStore.appendMessage(callSid, {
+          role: "assistant",
+          content: fullResponse,
+        });
+      }
+    }
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      logger.debug({ callSid }, "LLM stream aborted");
+    } else {
+      logger.error({ callSid, err }, "LLM stream error");
+    }
+  } finally {
+    if (session.abortController === abortController) {
+      session.abortController = null;
+    }
+  }
+}
+
+function handleInterrupt(ws: WebSocket): void {
+  const session = sessionStore.getByWs(ws);
+  if (!session) return;
+
+  logger.debug({ callSid: session.callSid }, "interrupt");
+  session.abortController?.abort();
+  session.abortController = null;
+}
+
+function handleRelayError(ws: WebSocket, msg: ErrorEvent): void {
+  logger.error(
+    { callSid: msg.callSid, description: msg.description },
+    "ConversationRelay error",
+  );
+  ws.close();
+}
+
+async function handleClose(ws: WebSocket): Promise<void> {
+  logger.debug("ConversationRelay WebSocket closed");
+  const session = sessionStore.removeByWs(ws);
+
+  if (!session?.messages.length) return;
+
+  logger.debug(
+    { count: session.messages.length, callSid: session.callSid },
+    "Saving messages",
+  );
+  for (const message of session.messages) {
+    const params =
+      message.role === "user"
+        ? {
+            sender: session.from,
+            receiver: session.to,
+            direction: "inbound" as const,
+          }
+        : {
+            sender: session.to,
+            receiver: session.from,
+            direction: "outbound" as const,
+          };
+    await messageRepository.create({
+      ...params,
+      body: message.content?.toString() ?? "",
+    });
+  }
+}
+
 export function attachWebSocket(server: Server): WebSocketServer {
   const wss = new WebSocketServer({ server, path: "/twilio/relay" });
 
@@ -60,130 +170,21 @@ export function attachWebSocket(server: Server): WebSocketServer {
       }
 
       switch (msg.type) {
-        case "setup": {
-          logger.debug(
-            { callSid: msg.callSid, from: msg.from, to: msg.to },
-            "Setup",
-          );
-          wsToCallSid.set(ws, msg.callSid);
-          sessionStore.create(msg.callSid, {
-            ws,
-            callSid: msg.callSid,
-            from: msg.from,
-            to: msg.to,
-            messages: [],
-            abortController: null,
-          });
-          break;
-        }
-
-        case "prompt": {
-          if (!msg.last) break;
-
-          const callSid = wsToCallSid.get(ws);
-          if (!callSid) {
-            logger.debug("prompt: no session found for this WebSocket");
-            break;
-          }
-
-          const session = sessionStore.get(callSid);
-          if (!session) break;
-
-          logger.debug({ callSid, length: msg.voicePrompt.length }, "prompt");
-
-          session.abortController?.abort();
-          const abortController = new AbortController();
-          session.abortController = abortController;
-
-          const messages = sessionStore.appendMessage(callSid, {
-            role: "user",
-            content: msg.voicePrompt,
-          });
-
-          let fullResponse = "";
-          try {
-            for await (const chunk of voiceCompletion.stream(messages, {
-              signal: abortController.signal,
-            })) {
-              if (abortController.signal.aborted) break;
-              fullResponse += chunk;
-              ws.send(
-                JSON.stringify({ type: "text", token: chunk, last: false }),
-              );
-            }
-
-            if (!abortController.signal.aborted) {
-              ws.send(JSON.stringify({ type: "text", token: "", last: true }));
-              if (fullResponse) {
-                sessionStore.appendMessage(callSid, {
-                  role: "assistant",
-                  content: fullResponse,
-                });
-              }
-            }
-          } catch (err: unknown) {
-            if (isAbortError(err)) {
-              logger.debug({ callSid }, "LLM stream aborted");
-            } else {
-              logger.error({ callSid, err }, "LLM stream error");
-            }
-          } finally {
-            if (session.abortController === abortController) {
-              session.abortController = null;
-            }
-          }
-          break;
-        }
-
-        case "interrupt": {
-          const callSid = wsToCallSid.get(ws);
-          if (!callSid) break;
-
-          const session = sessionStore.get(callSid);
-          if (!session) break;
-
-          logger.debug({ callSid }, "interrupt");
-          session.abortController?.abort();
-          session.abortController = null;
-          break;
-        }
-
-        case "error": {
-          logger.error(
-            { callSid: msg.callSid, description: msg.description },
-            "ConversationRelay error",
-          );
-          ws.close();
-          break;
-        }
+        case "setup":
+          return handleSetup(ws, msg);
+        case "prompt":
+          return handlePrompt(ws, msg);
+        case "interrupt":
+          return handleInterrupt(ws);
+        case "error":
+          return handleRelayError(ws, msg);
       }
     });
 
-    ws.on("close", async () => {
-      logger.debug("ConversationRelay WebSocket closed");
-      wsToCallSid.delete(ws);
-      const session = sessionStore.removeByWs(ws);
-
-      if (session?.messages.length) {
-        logger.debug(
-          { count: session.messages.length, callSid: session.callSid },
-          "Saving messages",
-        );
-        for (const message of session.messages) {
-          const isUser = message.role === "user";
-          await messageRepository.create({
-            sender: isUser ? session.from : session.to,
-            receiver: isUser ? session.to : session.from,
-            body: message.content?.toString() ?? "",
-            direction: isUser ? "inbound" : "outbound",
-          });
-        }
-      }
-    });
+    ws.on("close", () => handleClose(ws));
 
     ws.on("error", (err) => {
       logger.error({ err }, "ConversationRelay WebSocket error");
-      wsToCallSid.delete(ws);
       sessionStore.removeByWs(ws);
     });
   });
