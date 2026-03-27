@@ -142,7 +142,7 @@ export const voiceCompletion = defineCompletion({
     For short lists (2-3 items): "first... then... and finally..."
     For longer lists, introduce with a phrase like "here are the steps:" or "there are four options:", then read each item as a sentence.
     Numbered lists should be read as "first", "second", "third", not "one", "two", "three".
-    URLs should be read character by character: "elevenlabs.io/docs" → "eleven labs dot io slash docs".
+    URLs should be read character by character: "automate.it.com/docs" → "automate dot it dot com slash docs".
 `,
   params: { venice_parameters: { enable_web_search: "auto" } },
 });
