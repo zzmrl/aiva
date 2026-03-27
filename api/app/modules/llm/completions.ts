@@ -28,21 +28,19 @@ async function executeToolCalls(
   conversation: CompletionMessage[],
 ): Promise<void> {
   logger.debug({ count: toolCalls.length }, "executing tool calls");
-  for (const toolCall of toolCalls) {
-    if (toolCall.type !== "function") {
-      continue;
-    }
-    const args = JSON.parse(toolCall.function.arguments) as Record<
-      string,
-      unknown
-    >;
-    const result = await callTool(toolCall.function.name, args);
-    conversation.push({
-      role: "tool",
-      tool_call_id: toolCall.id,
-      content: result,
-    });
-  }
+  const functionCalls = toolCalls.filter((tc) => tc.type === "function");
+  const results = await Promise.all(
+    functionCalls.map(async (toolCall) => {
+      const args = JSON.parse(toolCall.function.arguments);
+      const result = await callTool(toolCall.function.name, args);
+      return {
+        tool_call_id: toolCall.id,
+        content: result,
+        role: "tool" as const,
+      };
+    }),
+  );
+  conversation.push(...results);
 }
 
 export function defineCompletion(settings: CompletionSettings) {
@@ -50,7 +48,7 @@ export function defineCompletion(settings: CompletionSettings) {
   const systemMessage = { role: "system" as const, content: system };
   const baseParams = { model, ...params };
 
-  // Resolves one round of MCP tool calls (if any) before the final completion.
+  // Resolves MCP tool call rounds (if any) before the final completion.
   async function prepareConversation(
     messages: CompletionMessage[],
     onToolCall?: () => void | Promise<void>,
@@ -59,17 +57,24 @@ export function defineCompletion(settings: CompletionSettings) {
     const tools = hasMcp() ? await getTools() : undefined;
     if (!tools?.length) return conversation;
 
-    const response = await client.chat.completions.create({
-      ...baseParams,
-      messages: [systemMessage, ...conversation],
-      tools,
-    });
-    const choice = response.choices[0];
-    if (choice?.finish_reason === "tool_calls" && choice.message.tool_calls) {
+    while (true) {
+      const response = await client.chat.completions.create({
+        ...baseParams,
+        messages: [systemMessage, ...conversation],
+        tools,
+      });
+      const choice = response.choices[0];
+      if (
+        choice?.finish_reason !== "tool_calls" ||
+        !choice.message.tool_calls
+      ) {
+        break;
+      }
       await onToolCall?.();
       conversation.push(choice.message);
       await executeToolCalls(choice.message.tool_calls, conversation);
     }
+
     return conversation;
   }
 
