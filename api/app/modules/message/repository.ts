@@ -91,6 +91,29 @@ export async function createInboundAndFetchConversation(
 }
 
 /**
+ * Get recent messages between two participants, oldest first
+ * @param phone1 - One participant's phone number
+ * @param phone2 - The other participant's phone number
+ * @param limit - Max number of messages to return (most recent)
+ */
+export async function findByParticipants(
+  phone1: string,
+  phone2: string,
+  limit = 20,
+): Promise<Message[]> {
+  return sql`
+    SELECT * FROM (
+      SELECT * FROM messages
+      WHERE (sender = ${phone1} AND receiver = ${phone2})
+         OR (sender = ${phone2} AND receiver = ${phone1})
+      ORDER BY created DESC
+      LIMIT ${limit}
+    ) recent
+    ORDER BY created ASC
+  `;
+}
+
+/**
  * Get unique conversations with their latest message
  * @returns Array of conversations ordered by most recent message first
  */

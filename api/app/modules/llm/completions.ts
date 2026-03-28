@@ -45,12 +45,17 @@ async function executeToolCalls(
 
 export function defineCompletion(settings: CompletionSettings) {
   const { model, system, params } = settings;
-  const systemMessage = { role: "system" as const, content: system };
   const baseParams = { model, ...params };
+
+  function buildSystemMessage(systemContext?: string) {
+    const content = systemContext ? `${system}\n${systemContext}` : system;
+    return { role: "system" as const, content };
+  }
 
   // Resolves MCP tool call rounds (if any) before the final completion.
   async function prepareConversation(
     messages: CompletionMessage[],
+    systemMessage: { role: "system"; content: string },
     onToolCall?: () => void | Promise<void>,
   ): Promise<CompletionMessage[]> {
     const conversation = [...messages];
@@ -79,9 +84,13 @@ export function defineCompletion(settings: CompletionSettings) {
   }
 
   return {
-    async create(messages: CompletionMessage[]): Promise<string> {
+    async create(
+      messages: CompletionMessage[],
+      options?: { systemContext?: string },
+    ): Promise<string> {
       logger.debug({ model, messages: messages.length }, "create()");
-      const conversation = await prepareConversation(messages);
+      const systemMessage = buildSystemMessage(options?.systemContext);
+      const conversation = await prepareConversation(messages, systemMessage);
       const response = await client.chat.completions.create({
         ...baseParams,
         messages: [systemMessage, ...conversation],
@@ -96,11 +105,14 @@ export function defineCompletion(settings: CompletionSettings) {
       options?: {
         signal?: AbortSignal;
         onToolCall?: () => void | Promise<void>;
+        systemContext?: string;
       },
     ) {
       logger.debug({ model, messages: messages.length }, "stream()");
+      const systemMessage = buildSystemMessage(options?.systemContext);
       const conversation = await prepareConversation(
         messages,
+        systemMessage,
         options?.onToolCall,
       );
       const stream = await client.chat.completions.create(
@@ -137,7 +149,7 @@ export const smsCompletion = defineCompletion({
 
 export const voiceCompletion = defineCompletion({
   model: "zai-org-glm-4.7",
-  system: `You are a helpful voice assistant. Be concise and conversational.
+  system: `You are Ava, a helpful voice assistant. Be concise and conversational.
     When the response contains markdown lists, convert to natural spoken language — no bullet markers.
     For short lists (2-3 items): "first... then... and finally..."
     For longer lists, introduce with a phrase like "here are the steps:" or "there are four options:", then read each item as a sentence.
