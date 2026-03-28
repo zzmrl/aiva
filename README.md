@@ -4,7 +4,7 @@ A virtual assistant application that processes phone calls and text messages via
 
 ## Features
 
-- **Conversational Voice Chat**: Real-time bidirectional voice calls with speech-to-text transcription, LLM responses, and text-to-speech audio streaming via WebSocket
+- **Conversational Voice Chat**: Real-time bidirectional voice calls via Twilio ConversationRelay — Twilio handles STT and TTS natively, the server streams LLM responses back over WebSocket
 - **Conversational SMS**: AI-powered text message responses using Venice AI LLM with web search capabilities
 - **Message Storage**: PostgreSQL database for persistent conversation history
 - **Web Interface**: Modern SvelteKit UI with chat-style conversation views
@@ -100,7 +100,7 @@ Services are split across **profiles** so only what you need is built and starte
 - **Proxy**: NGINX
 - **Database**: PostgreSQL 18
 - **AI**: Venice AI (OpenAI-compatible API)
-- **Telephony**: Twilio Voice & SMS with Media Streams
+- **Telephony**: Twilio Voice & SMS with ConversationRelay
 - **Infrastructure**: Docker Compose
 
 ## Requirements
@@ -223,10 +223,9 @@ Set your Twilio phone number webhooks to:
 ## API Endpoints
 
 ### Twilio Webhooks
-- `POST /twilio/voice` - Incoming call handler (initiates transcription and WebSocket stream)
+- `POST /twilio/voice` - Incoming call handler (returns TwiML to connect ConversationRelay)
 - `POST /twilio/sms` - SMS webhook handler with AI responses
-- `POST /twilio/transcription-events` - Real-time transcription callback
-- `WSS /twilio/stream` - WebSocket for bidirectional audio streaming
+- `WSS /twilio/relay` - WebSocket for ConversationRelay (receives transcribed prompts, streams LLM text back)
 
 ### Messages
 - `GET /messages` - List messages (with optional filters)
@@ -286,8 +285,7 @@ Set your Twilio phone number webhooks to:
 
 ## Resources
 
-- [Twilio Media Streams](https://www.twilio.com/docs/voice/media-streams)
-- [Twilio Real-Time Transcription](https://www.twilio.com/docs/voice/twiml/connect/transcription)
+- [Twilio ConversationRelay](https://www.twilio.com/docs/voice/twiml/connect/conversation-relay)
 - [Twilio SMS Tutorial](https://www.twilio.com/docs/messaging/tutorials/how-to-receive-and-reply/node-js)
 - [Venice AI Documentation](https://docs.venice.ai/)
 - [ngrok Documentation](https://ngrok.com/docs)
