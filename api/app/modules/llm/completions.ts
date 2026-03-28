@@ -9,6 +9,24 @@ import appLogger from "../../shared/logger";
 const logger = appLogger.child({ module: "llm:completions" });
 
 export type CompletionMessage = ChatCompletionMessageParam;
+// https://docs.venice.ai/api-reference/api-spec#venice-parameters
+export type VeniceParameters = {
+  character_slug?: string;
+  strip_thinking_response?: boolean;
+  disable_thinking?: boolean;
+  enable_web_search?: "off" | "on" | "auto";
+  enable_web_scraping?: boolean;
+  enable_x_search?: boolean;
+  enable_web_citations?: boolean;
+  include_search_results_in_stream?: boolean;
+  return_search_results_as_documents?: boolean;
+  include_venice_system_prompt?: boolean;
+  prompt_cache_key?: string;
+};
+export type CompletionCreateParams = {
+  [p: string]: unknown;
+  venice_parameters: VeniceParameters;
+};
 
 type VeniceModel =
   | "zai-org-glm-4.7"
@@ -17,10 +35,10 @@ type VeniceModel =
   | "grok-41-fast"
   | "llama-3.2-3b";
 
-type CompletionSettings = {
+export type CompletionSettings = {
   model: VeniceModel;
   system: string;
-  params?: Record<string, unknown>;
+  params?: CompletionCreateParams;
 };
 
 async function executeToolCalls(
@@ -143,7 +161,8 @@ export const defaultCompletion = defineCompletion({
 export const smsCompletion = defineCompletion({
   model: "zai-org-glm-4.7",
   system:
-    "You are a helpful text assistant. Format your response for SMS. Be concise and to the point.",
+    "You are Ava, a helpful text assistant. Keep responses short and direct. " +
+    "Never use markdown — no asterisks, dashes, bullet points, or headers. Plain text only.",
   params: { venice_parameters: { enable_web_search: "auto" } },
 });
 

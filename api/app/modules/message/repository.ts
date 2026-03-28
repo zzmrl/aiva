@@ -73,17 +73,23 @@ export async function createInboundAndFetchConversation(
   from: string,
   to: string,
   body: string,
+  limit = 20,
 ): Promise<Message[]> {
   return sql`
     WITH new_msg AS (
       INSERT INTO messages (body, receiver, sender, direction)
       VALUES (${body}, ${to}, ${from}, 'inbound')
       RETURNING *
+    ),
+    recent AS (
+      SELECT * FROM messages
+      WHERE ((sender = ${from} AND receiver = ${to})
+         OR (sender = ${to} AND receiver = ${from}))
+        AND created >= NOW() - INTERVAL '30 MINUTE'
+      ORDER BY created DESC
+      LIMIT ${limit - 1}
     )
-    SELECT * FROM messages
-    WHERE ((sender = ${from} AND receiver = ${to})
-       OR (sender = ${to} AND receiver = ${from}))
-      AND created >= NOW() - INTERVAL '30 MINUTE'
+    SELECT * FROM recent
     UNION ALL
     SELECT * FROM new_msg
     ORDER BY created ASC

@@ -53,15 +53,11 @@ export async function replyToMessage(
     })),
   );
   logger.debug({ length: llmResponse.length }, "replyToMessage: LLM response");
-  repository
-    .create({
-      body: llmResponse,
-      receiver: from,
-      sender: to,
-      direction: "outbound",
-    })
-    .catch((err) =>
-      logger.error({ err }, "replyToMessage: failed to save outbound message"),
-    );
+  await repository.create({
+    body: llmResponse,
+    receiver: from,
+    sender: to,
+    direction: "outbound",
+  });
   return llmResponse;
 }
