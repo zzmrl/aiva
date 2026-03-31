@@ -14,6 +14,8 @@ const mockCreate = mock(
 );
 const mockFindMany = mock(() => Promise.resolve<Message[]>([]));
 const mockFindConversation = mock(() => Promise.resolve<Message[]>([]));
+const mockFindSystemPhones = mock(() => Promise.resolve<string[]>([]));
+const mockFindConversations = mock(() => Promise.resolve([]));
 const mockSmsCreateCompletion = mock((_messages: unknown[]) =>
   Promise.resolve("Mocked text response"),
 );
@@ -24,6 +26,8 @@ mock.module("../app/modules/message/repository", () => ({
   findConversation: mockFindConversation,
   findById: mock(() => Promise.resolve(undefined)),
   getMessagesByPhone: mock(() => Promise.resolve([])),
+  findSystemPhones: mockFindSystemPhones,
+  findConversations: mockFindConversations,
 }));
 
 mock.module("../app/db", () => ({
@@ -80,6 +84,8 @@ describe("API Routes", () => {
     mockCreate.mockClear();
     mockFindMany.mockClear();
     mockFindConversation.mockClear();
+    mockFindSystemPhones.mockClear();
+    mockFindConversations.mockClear();
     mockSmsCreateCompletion.mockClear();
   });
 
@@ -275,6 +281,65 @@ describe("API Routes", () => {
 
       expect(response.status).toBe(200);
       expect(data).toEqual([]);
+    });
+
+    it("should pass systemPhone filter to repository", async () => {
+      mockFindMany.mockResolvedValueOnce([]);
+
+      const response = await fetch(`${baseUrl}/messages?systemPhone=%2B15559876543`);
+
+      expect(response.status).toBe(200);
+      expect(mockFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({ systemPhone: "+15559876543" }),
+      );
+    });
+  });
+
+  describe("GET /messages/system-phones", () => {
+    it("should return list of system phone numbers", async () => {
+      mockFindSystemPhones.mockResolvedValueOnce([
+        "+15559876543",
+        "+15550001111",
+      ]);
+
+      const response = await fetch(`${baseUrl}/messages/system-phones`);
+      const data = (await response.json()) as string[];
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("application/json");
+      expect(data).toEqual(["+15559876543", "+15550001111"]);
+      expect(mockFindSystemPhones).toHaveBeenCalled();
+    });
+
+    it("should return empty array when no messages exist", async () => {
+      mockFindSystemPhones.mockResolvedValueOnce([]);
+
+      const response = await fetch(`${baseUrl}/messages/system-phones`);
+      const data = (await response.json()) as string[];
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual([]);
+    });
+  });
+
+  describe("GET /messages/conversations", () => {
+    it("should return conversations", async () => {
+      mockFindConversations.mockResolvedValueOnce([]);
+
+      const response = await fetch(`${baseUrl}/messages/conversations`);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual([]);
+      expect(mockFindConversations).toHaveBeenCalledTimes(1);
+    });
+
+    it("should pass systemPhone to repository when provided", async () => {
+      mockFindConversations.mockResolvedValueOnce([]);
+
+      await fetch(`${baseUrl}/messages/conversations?systemPhone=%2B15559876543`);
+
+      expect(mockFindConversations).toHaveBeenCalledWith("+15559876543");
     });
   });
 

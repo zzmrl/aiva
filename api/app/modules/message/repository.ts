@@ -21,6 +21,7 @@ export async function create(input: CreateMessageInput): Promise<Message> {
 
 export type MessagesPhoneFilter = {
   phone?: string;
+  systemPhone?: string;
 };
 export type MessagesFilter = MessagesPhoneFilter;
 
@@ -33,10 +34,23 @@ export async function findMany(
   filter: MessagesFilter = {},
 ): Promise<Message[]> {
   let f = sql``;
-  if (filter.phone) {
+  if (filter.phone && filter.systemPhone) {
+    f = sql`
+      WHERE (sender = ${filter.phone} OR receiver = ${filter.phone})
+        AND (
+          (direction = 'inbound' AND receiver = ${filter.systemPhone})
+          OR (direction = 'outbound' AND sender = ${filter.systemPhone})
+        )
+    `;
+  } else if (filter.phone) {
     f = sql`
       WHERE sender = ${filter.phone}
-       OR receiver = ${filter.phone}
+         OR receiver = ${filter.phone}
+    `;
+  } else if (filter.systemPhone) {
+    f = sql`
+      WHERE (direction = 'inbound' AND receiver = ${filter.systemPhone})
+         OR (direction = 'outbound' AND sender = ${filter.systemPhone})
     `;
   }
   return sql`
@@ -59,6 +73,20 @@ export async function findById(id: number): Promise<Message | undefined> {
     WHERE id = ${id}
   `;
   return message;
+}
+
+/**
+ * Get distinct system-side phone numbers from message history.
+ * System phone = receiver on inbound, sender on outbound.
+ */
+export async function findSystemPhones(): Promise<string[]> {
+  const rows = await sql<{ phone: string }[]>`
+    SELECT DISTINCT
+      CASE WHEN direction = 'inbound' THEN receiver ELSE sender END AS phone
+    FROM messages
+    ORDER BY phone
+  `;
+  return rows.map((r) => r.phone);
 }
 
 /**
@@ -121,9 +149,18 @@ export async function findByParticipants(
 
 /**
  * Get unique conversations with their latest message
+ * @param systemPhone - Optional system phone to filter conversations by
  * @returns Array of conversations ordered by most recent message first
  */
-export async function findConversations(): Promise<Conversation[]> {
+export async function findConversations(
+  systemPhone?: string,
+): Promise<Conversation[]> {
+  const f = systemPhone
+    ? sql`
+        WHERE (direction = 'inbound' AND receiver = ${systemPhone})
+           OR (direction = 'outbound' AND sender = ${systemPhone})
+      `
+    : sql``;
   return sql`
     SELECT DISTINCT ON (LEAST(sender, receiver), GREATEST(sender, receiver))
       LEAST(sender, receiver) as phone1,
@@ -133,6 +170,7 @@ export async function findConversations(): Promise<Conversation[]> {
       created as last_message_at,
       CASE WHEN direction = 'inbound' THEN sender ELSE receiver END as contact_phone
     FROM messages
+    ${f}
     ORDER BY LEAST(sender, receiver), GREATEST(sender, receiver), created DESC
   `;
 }

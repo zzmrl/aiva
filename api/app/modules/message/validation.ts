@@ -3,6 +3,7 @@ import { z } from "zod";
 export const listMessagesSchema = {
   query: z.object({
     phone: z.string().optional(),
+    systemPhone: z.string().optional(),
   }),
 };
 

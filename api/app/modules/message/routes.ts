@@ -11,7 +11,12 @@ const router = Router();
 
 router.get("/", validate(listMessagesSchema), controller.list);
 router.post("/", validate(createMessageSchema), controller.create);
-router.get("/conversations", controller.listConversations);
+router.get("/system-phones", controller.listSystemPhones);
+router.get(
+  "/conversations",
+  validate(listMessagesSchema),
+  controller.listConversations,
+);
 router.get("/:id", validate(messageIdSchema), controller.getById);
 
 export default router;

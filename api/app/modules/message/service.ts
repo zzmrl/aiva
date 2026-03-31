@@ -27,8 +27,14 @@ export async function getById(id: number): Promise<Message> {
   return message;
 }
 
-export async function listConversations(): Promise<Conversation[]> {
-  return repository.findConversations();
+export async function listConversations(
+  systemPhone?: string,
+): Promise<Conversation[]> {
+  return repository.findConversations(systemPhone);
+}
+
+export async function listSystemPhones(): Promise<string[]> {
+  return repository.findSystemPhones();
 }
 
 export async function replyToMessage(

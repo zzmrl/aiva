@@ -3,7 +3,8 @@ import * as service from "./service";
 
 export const list: RequestHandler = async (req, res) => {
   const phone = req.query.phone as string | undefined;
-  const messages = await service.list({ phone });
+  const systemPhone = req.query.systemPhone as string | undefined;
+  const messages = await service.list({ phone, systemPhone });
   res.json(messages);
 };
 
@@ -18,7 +19,13 @@ export const create: RequestHandler = async (req, res) => {
   res.status(201).json(message);
 };
 
-export const listConversations: RequestHandler = async (_req, res) => {
-  const conversations = await service.listConversations();
+export const listConversations: RequestHandler = async (req, res) => {
+  const systemPhone = req.query.systemPhone as string | undefined;
+  const conversations = await service.listConversations(systemPhone);
   res.json(conversations);
+};
+
+export const listSystemPhones: RequestHandler = async (_req, res) => {
+  const phones = await service.listSystemPhones();
+  res.json(phones);
 };
