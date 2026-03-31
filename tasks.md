@@ -1,3 +1,7 @@
+# AIVA Tasklist
+
+## MVP
+
 1. Setup twilio
     * [x] Setup Account
     * [x] Save API key
@@ -30,11 +34,11 @@
     * [x] All working
 8. Setup Conversation
     * [x] Send entire conversation to LLM for text messages
-    * [ ] Update UI to display messages as back and forth conversations
-    * [ ] Implement a voice conversation
+    * [x] Update UI to display messages as back and forth conversations
+    * [x] Implement a voice conversation
 9. Deploy & test
 
-Future:
+## Improve and Grow
 
 * Monitor & maintain
   * [ ] Setup monitoring
@@ -44,11 +48,14 @@ Future:
 * UI
   * [ ] Virtualize or paginate message cards (will be a performance issue when scaling)
   * [ ] Use websockets for real-time updates
+  * [ ] Outbound messaging — initiate or reply from the dashboard
+  * [ ] Contact names — associate names with phone numbers
+  * [ ] Message search — search past conversations by content or phone number
+  * [ ] Channel label — distinguish voice vs. SMS messages in the conversation view
 * API
-  * [ ] Install prisma ORM (or another way to streamline migrations)
   * [ ] Implement pagination for messages endpoint
-  * [ ] Implement search functionality for messages endpoint
-  * [ ] Implement rate limiting
   * [ ] Use RCS messaging
-    * [ ] When user typing, delay response
-  * [ ] Throttle API calls and check limits at request
+  * [ ] Webhook idempotency — deduplicate Twilio retries to prevent duplicate messages
+  * [ ] MCP tools cache invalidation — refresh tools list periodically or on-demand instead of once at startup
+* AI / Voice
+  * [ ] Per-number system prompts — configure different personas per Twilio number via DB/config
