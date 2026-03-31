@@ -92,7 +92,7 @@
           onchange={(e) => selectSystemPhone((e.target as HTMLSelectElement).value)}
           aria-label="Select system phone number"
         >
-          {#each systemPhones as phone}
+          {#each systemPhones as phone (phone)}
             <option value={phone}>{formatPhoneNumber(phone)}</option>
           {/each}
         </select>
