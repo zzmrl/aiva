@@ -4,7 +4,8 @@ import { render } from 'vitest-browser-svelte';
 
 vi.mock('$lib/api', () => ({
   getConversations: vi.fn().mockResolvedValue([]),
-  getMessagesByPhone: vi.fn().mockResolvedValue([]),
+  getMessages: vi.fn().mockResolvedValue([]),
+  getSystemPhones: vi.fn().mockResolvedValue([]),
 }));
 
 describe('/+page.svelte', () => {

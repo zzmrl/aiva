@@ -1,10 +1,19 @@
 <script lang="ts">
-  import { getConversations, getMessages, type Conversation, type Message } from '$lib/api';
+  import {
+    getSystemPhones,
+    getConversations,
+    getMessages,
+    type Conversation,
+    type Message,
+  } from '$lib/api';
+  import { formatPhoneNumber } from '$lib/utils';
   import { onMount } from 'svelte';
   import ConversationList from '$lib/ConversationList.svelte';
   import ConversationView from '$lib/ConversationView.svelte';
   import ErrorIcon from '$lib/icons/ErrorIcon.svelte';
 
+  let systemPhones: string[] = $state([]);
+  let selectedSystemPhone: string | null = $state(null);
   let conversations: Conversation[] = $state([]);
   let messages: Message[] = $state([]);
   let loading = $state(true);
@@ -14,7 +23,16 @@
 
   onMount(async () => {
     try {
-      conversations = await getConversations();
+      systemPhones = await getSystemPhones();
+      if (systemPhones.length >= 1) {
+        selectedSystemPhone = systemPhones[0];
+      }
+    } catch (err) {
+      console.error('Failed to fetch system phones', err);
+      // fall through — selectedSystemPhone stays null, load all conversations
+    }
+    try {
+      conversations = await getConversations(selectedSystemPhone ?? undefined);
     } catch (err) {
       console.error(err);
       error = err;
@@ -23,11 +41,27 @@
     }
   });
 
+  async function selectSystemPhone(phone: string) {
+    selectedSystemPhone = phone;
+    selectedPhone = null;
+    messages = [];
+    loading = true;
+    error = null;
+    try {
+      conversations = await getConversations(phone);
+    } catch (err) {
+      console.error(err);
+      error = err;
+    } finally {
+      loading = false;
+    }
+  }
+
   async function selectConversation(phone: string) {
     selectedPhone = phone;
     messagesLoading = true;
     try {
-      const fetched = await getMessages(phone);
+      const fetched = await getMessages(phone, selectedSystemPhone ?? undefined);
       messages = fetched.reverse();
     } catch (err) {
       console.error(err);
@@ -50,6 +84,20 @@
       ? 'hidden md:flex md:flex-col'
       : 'flex flex-col'}"
   >
+    {#if systemPhones.length > 1}
+      <div class="p-3 border-b border-base-300">
+        <select
+          class="select select-sm w-full"
+          value={selectedSystemPhone}
+          onchange={(e) => selectSystemPhone((e.target as HTMLSelectElement).value)}
+          aria-label="Select system phone number"
+        >
+          {#each systemPhones as phone}
+            <option value={phone}>{formatPhoneNumber(phone)}</option>
+          {/each}
+        </select>
+      </div>
+    {/if}
     {#if loading}
       <div
         class="flex justify-center items-center py-12 flex-1"
