@@ -33,30 +33,19 @@ export type MessagesFilter = MessagesPhoneFilter;
 export async function findMany(
   filter: MessagesFilter = {},
 ): Promise<Message[]> {
-  let f = sql``;
-  if (filter.phone && filter.systemPhone) {
-    f = sql`
-      WHERE (sender = ${filter.phone} OR receiver = ${filter.phone})
-        AND (
-          (direction = 'inbound' AND receiver = ${filter.systemPhone})
-          OR (direction = 'outbound' AND sender = ${filter.systemPhone})
-        )
-    `;
-  } else if (filter.phone) {
-    f = sql`
-      WHERE sender = ${filter.phone}
-         OR receiver = ${filter.phone}
-    `;
-  } else if (filter.systemPhone) {
-    f = sql`
-      WHERE (direction = 'inbound' AND receiver = ${filter.systemPhone})
-         OR (direction = 'outbound' AND sender = ${filter.systemPhone})
-    `;
-  }
+  const { phone, systemPhone } = filter;
+  const byPhone = phone
+    ? sql`(sender = ${phone} OR receiver = ${phone})`
+    : sql`TRUE`;
+  const bySystemPhone = systemPhone
+    ? sql`
+        ((direction = 'inbound' AND receiver = ${systemPhone})
+      OR (direction = 'outbound' AND sender = ${systemPhone}))`
+    : sql`TRUE`;
   return sql`
     SELECT *
     FROM messages
-    ${f}
+    WHERE ${byPhone} AND ${bySystemPhone}
     ORDER BY created DESC
   `;
 }
@@ -80,9 +69,12 @@ export async function findById(id: number): Promise<Message | undefined> {
  * System phone = receiver on inbound, sender on outbound.
  */
 export async function findSystemPhones(): Promise<string[]> {
-  const rows = await sql<{ phone: string }[]>`
+  const rows: { phone: string }[] = await sql`
     SELECT DISTINCT
-      CASE WHEN direction = 'inbound' THEN receiver ELSE sender END AS phone
+      CASE WHEN direction = 'inbound'
+          THEN receiver
+          ELSE sender
+      END AS phone
     FROM messages
     ORDER BY phone
   `;
