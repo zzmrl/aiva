@@ -2,8 +2,8 @@ import type { RequestHandler } from "express";
 import * as service from "./service";
 import type { SmsWebhookRequest } from "./validation";
 
-export const voice: RequestHandler = (req, res) => {
-  const response = service.handleIncomingCall(req.host);
+export const voice: RequestHandler = (_req, res) => {
+  const response = service.handleIncomingCall();
   res.type("text/xml").send(response);
 };
 

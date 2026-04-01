@@ -1,16 +1,17 @@
 import * as messageService from "../message/service";
 import twilio from "twilio";
 import appLogger from "../../shared/logger";
+import config from "../../config";
 
 const logger = appLogger.child({ module: "twilio:service" });
 
-export function handleIncomingCall(host: string): string {
-  logger.debug({ host }, "Incoming call");
+export function handleIncomingCall(): string {
+  logger.debug("Incoming call");
   const twiml = new twilio.twiml.VoiceResponse();
 
   const connect = twiml.connect();
   connect.conversationRelay({
-    url: `wss://${host}/twilio/relay`,
+    url: `wss://${config.PUBLIC_HOST}/twilio/relay`,
     welcomeGreeting: "Hey it's Ava! Whats up?",
     voice: "yM93hbw8Qtvdma2wCnJG",
   });

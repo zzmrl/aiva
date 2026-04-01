@@ -1,16 +1,19 @@
 import { describe, expect, it, mock, beforeEach, afterAll } from "bun:test";
 import type { Message, CreateMessageInput } from "../app/modules/message";
 
+const fakeMessage = (p: Partial<Message> = {}): Message => ({
+  id: 1,
+  receiver: "",
+  sender: "",
+  body: "",
+  direction: "inbound",
+  created: new Date(),
+  ...p,
+});
+
 const mockCreate = mock(
   (_input: CreateMessageInput): Promise<Message> =>
-    Promise.resolve({
-      id: 1,
-      receiver: "",
-      sender: "",
-      body: "",
-      direction: "inbound",
-      created: new Date(),
-    }),
+    Promise.resolve(fakeMessage()),
 );
 const mockFindMany = mock(() => Promise.resolve<Message[]>([]));
 const mockFindConversation = mock(() => Promise.resolve<Message[]>([]));
@@ -18,6 +21,10 @@ const mockFindSystemPhones = mock(() => Promise.resolve<string[]>([]));
 const mockFindConversations = mock(() => Promise.resolve([]));
 const mockSmsCreateCompletion = mock((_messages: unknown[]) =>
   Promise.resolve("Mocked text response"),
+);
+const mockCreateInboundAndFetchConversation = mock(
+  (_from: string, _to: string, _body: string): Promise<Message[]> =>
+    Promise.resolve([]),
 );
 
 mock.module("../app/modules/message/repository", () => ({
@@ -28,6 +35,7 @@ mock.module("../app/modules/message/repository", () => ({
   getMessagesByPhone: mock(() => Promise.resolve([])),
   findSystemPhones: mockFindSystemPhones,
   findConversations: mockFindConversations,
+  createInboundAndFetchConversation: mockCreateInboundAndFetchConversation,
 }));
 
 mock.module("../app/db", () => ({
@@ -87,6 +95,7 @@ describe("API Routes", () => {
     mockFindSystemPhones.mockClear();
     mockFindConversations.mockClear();
     mockSmsCreateCompletion.mockClear();
+    mockCreateInboundAndFetchConversation.mockClear();
   });
 
   describe("GET /health", () => {
@@ -123,15 +132,6 @@ describe("API Routes", () => {
 
   describe("POST /twilio/sms", () => {
     it("should save SMS and return TwiML response with LLM completion", async () => {
-      mockCreate.mockResolvedValueOnce({
-        id: 1,
-        receiver: "+15559876543",
-        sender: "+15551234567",
-        body: "Hello from SMS",
-        direction: "inbound",
-        created: new Date(),
-      });
-
       const response = await fetch(`${baseUrl}/twilio/sms`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -151,16 +151,10 @@ describe("API Routes", () => {
       expect(xml).toContain("<Message>");
       expect(xml).toContain("Mocked text response");
 
-      expect(mockCreate).toHaveBeenCalledWith({
-        body: "Hello from SMS",
-        receiver: "+15559876543",
-        sender: "+15551234567",
-        direction: "inbound",
-      });
-      expect(mockFindConversation).toHaveBeenCalledWith(
+      expect(mockCreateInboundAndFetchConversation).toHaveBeenCalledWith(
         "+15551234567",
         "+15559876543",
-        30,
+        "Hello from SMS",
       );
       expect(mockSmsCreateCompletion).toHaveBeenCalledWith([]);
     });
@@ -210,15 +204,6 @@ describe("API Routes", () => {
     it("should handle special characters in SMS body", async () => {
       const specialBody = "Hello! 👋 @user #hashtag & <test>";
 
-      mockCreate.mockResolvedValueOnce({
-        id: 1,
-        receiver: "+15559876543",
-        sender: "+15551234567",
-        body: specialBody,
-        direction: "inbound",
-        created: new Date(),
-      });
-
       const response = await fetch(`${baseUrl}/twilio/sms`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -230,12 +215,11 @@ describe("API Routes", () => {
       });
 
       expect(response.status).toBe(201);
-      expect(mockCreate).toHaveBeenCalledWith({
-        body: specialBody,
-        sender: "+15551234567",
-        receiver: "+15559876543",
-        direction: "inbound",
-      });
+      expect(mockCreateInboundAndFetchConversation).toHaveBeenCalledWith(
+        "+15551234567",
+        "+15559876543",
+        specialBody,
+      );
     });
   });
 
@@ -286,7 +270,9 @@ describe("API Routes", () => {
     it("should pass systemPhone filter to repository", async () => {
       mockFindMany.mockResolvedValueOnce([]);
 
-      const response = await fetch(`${baseUrl}/messages?systemPhone=%2B15559876543`);
+      const response = await fetch(
+        `${baseUrl}/messages?systemPhone=%2B15559876543`,
+      );
 
       expect(response.status).toBe(200);
       expect(mockFindMany).toHaveBeenCalledWith(
@@ -306,7 +292,9 @@ describe("API Routes", () => {
       const data = (await response.json()) as string[];
 
       expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toContain("application/json");
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
       expect(data).toEqual(["+15559876543", "+15550001111"]);
       expect(mockFindSystemPhones).toHaveBeenCalled();
     });
@@ -337,7 +325,9 @@ describe("API Routes", () => {
     it("should pass systemPhone to repository when provided", async () => {
       mockFindConversations.mockResolvedValueOnce([]);
 
-      await fetch(`${baseUrl}/messages/conversations?systemPhone=%2B15559876543`);
+      await fetch(
+        `${baseUrl}/messages/conversations?systemPhone=%2B15559876543`,
+      );
 
       expect(mockFindConversations).toHaveBeenCalledWith("+15559876543");
     });
