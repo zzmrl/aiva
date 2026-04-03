@@ -40,13 +40,7 @@
 
 ## Improve and Grow
 
-* Monitor & maintain
-  * [ ] Setup monitoring
-  * [ ] Setup alerts
-  * [ ] Setup backups
-  * [ ] Setup CI/CD pipeline
 * UI
-  * [ ] Virtualize or paginate message cards (will be a performance issue when scaling)
   * [ ] Use websockets for real-time updates
   * [ ] Outbound messaging — initiate or reply from the dashboard
   * [ ] Contact names — associate names with phone numbers
@@ -59,3 +53,8 @@
   * [ ] MCP tools cache invalidation — refresh tools list periodically or on-demand instead of once at startup
 * AI / Voice
   * [ ] Per-number system prompts — configure different personas per Twilio number via DB/config
+* Monitor & maintain
+  * [ ] Setup monitoring
+  * [ ] Setup alerts
+  * [ ] Setup backups
+  * [ ] Setup CI/CD pipeline

@@ -6,49 +6,39 @@
     type Conversation,
     type Message,
   } from '$lib/api';
+  import { connectNotifications } from '$lib/notifications';
   import { formatPhoneNumber } from '$lib/utils';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import ConversationList from '$lib/ConversationList.svelte';
   import ConversationView from '$lib/ConversationView.svelte';
   import ErrorIcon from '$lib/icons/ErrorIcon.svelte';
 
   let systemPhones: string[] = $state([]);
-  let selectedSystemPhone: string | null = $state(null);
+  let selectedSystemPhone: string | undefined = $state();
   let conversations: Conversation[] = $state([]);
   let messages: Message[] = $state([]);
   let loading = $state(true);
   let messagesLoading = $state(false);
   let error: unknown = $state(null);
   let selectedPhone: string | null = $state(null);
+  let disconnect: (() => void) | undefined = $state();
 
-  onMount(async () => {
-    try {
-      systemPhones = await getSystemPhones();
-      if (systemPhones.length >= 1) {
-        selectedSystemPhone = systemPhones[0];
-      }
-    } catch (err) {
-      console.error('Failed to fetch system phones', err);
-      // fall through — selectedSystemPhone stays null, load all conversations
+  function isInSelectedConversation({ sender, receiver }: Message): boolean {
+    if (!selectedPhone) {
+      return false;
     }
-    try {
-      conversations = await getConversations(selectedSystemPhone ?? undefined);
-    } catch (err) {
-      console.error(err);
-      error = err;
-    } finally {
-      loading = false;
+    if (selectedSystemPhone) {
+      return (
+        (sender === selectedPhone && receiver === selectedSystemPhone) ||
+        (sender === selectedSystemPhone && receiver === selectedPhone)
+      );
     }
-  });
+    return sender === selectedPhone || receiver === selectedPhone;
+  }
 
-  async function selectSystemPhone(phone: string) {
-    selectedSystemPhone = phone;
-    selectedPhone = null;
-    messages = [];
-    loading = true;
-    error = null;
+  async function loadConversations() {
     try {
-      conversations = await getConversations(phone);
+      conversations = await getConversations(selectedSystemPhone);
     } catch (err) {
       console.error(err);
       error = err;
@@ -57,11 +47,57 @@
     }
   }
 
+  async function loadSystemPhones() {
+    try {
+      systemPhones = await getSystemPhones();
+      if (systemPhones.length >= 1) {
+        selectedSystemPhone = systemPhones[0];
+      }
+    } catch (err) {
+      console.error('Failed to fetch system phones', err);
+    }
+  }
+
+  onMount(async () => {
+    await loadSystemPhones();
+    await loadConversations();
+
+    disconnect = connectNotifications(async (event) => {
+      if (event.type !== 'new_message') {
+        return;
+      }
+      const msg = event.message;
+      console.log(msg);
+
+      try {
+        conversations = await getConversations(selectedSystemPhone);
+      } catch (err) {
+        console.error('Failed to refresh conversations', err);
+      }
+      if (isInSelectedConversation(msg)) {
+        messages = [...messages, msg];
+      }
+    });
+  });
+
+  onDestroy(() => {
+    disconnect?.();
+  });
+
+  async function selectSystemPhone(phone: string) {
+    selectedSystemPhone = phone;
+    selectedPhone = null;
+    messages = [];
+    loading = true;
+    error = null;
+    await loadConversations();
+  }
+
   async function selectConversation(phone: string) {
     selectedPhone = phone;
     messagesLoading = true;
     try {
-      const fetched = await getMessages(phone, selectedSystemPhone ?? undefined);
+      const fetched = await getMessages(phone, selectedSystemPhone);
       messages = fetched.reverse();
     } catch (err) {
       console.error(err);

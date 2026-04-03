@@ -14,7 +14,7 @@ FROM base AS dev
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 EXPOSE 5173
-CMD ["bun", "--bun", "run", "dev", "--host"]
+CMD ["bunx", "vite", "--host"]
 
 FROM base AS build
 COPY --from=install /temp/dev/node_modules node_modules

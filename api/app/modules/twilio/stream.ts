@@ -1,9 +1,9 @@
 import { WebSocketServer } from "ws";
 import type { WebSocket } from "ws";
-import type { Server } from "http";
 import * as sessionStore from "./sessionStore";
 import { voiceCompletion } from "../llm/completions";
 import { repository as messageRepository } from "../message";
+import { broadcast } from "../notifications";
 import type { CompletionMessage } from "../llm/completions";
 import appLogger from "../../shared/logger";
 
@@ -77,16 +77,19 @@ async function handleSetup(ws: WebSocket, msg: SetupEvent): Promise<void> {
 }
 
 async function handlePrompt(ws: WebSocket, msg: PromptEvent): Promise<void> {
-  if (!msg.last) return;
-
+  if (!msg.last) {
+    return;
+  }
   const session = sessionStore.get(ws);
   if (!session) {
     logger.debug("prompt: no session found for this WebSocket");
     return;
   }
 
-  const { callSid } = session;
-  logger.debug({ callSid, length: msg.voicePrompt.length }, "prompt");
+  logger.debug(
+    { callSid: session.callSid, length: msg.voicePrompt.length },
+    "prompt",
+  );
 
   session.abortController?.abort();
   const abortController = new AbortController();
@@ -140,9 +143,9 @@ async function handlePrompt(ws: WebSocket, msg: PromptEvent): Promise<void> {
     }
   } catch (err: unknown) {
     if (isAbortError(err)) {
-      logger.debug({ callSid }, "LLM stream aborted");
+      logger.debug({ callSid: session.callSid }, "LLM stream aborted");
     } else {
-      logger.error({ callSid, err }, "LLM stream error");
+      logger.error({ callSid: session.callSid, err }, "LLM stream error");
     }
   } finally {
     if (session.abortController === abortController) {
@@ -180,17 +183,18 @@ async function handleClose(ws: WebSocket): Promise<void> {
   );
   for (const message of session.messages) {
     const isUser = message.role === "user";
-    await messageRepository.create({
+    const saved = await messageRepository.create({
       sender: isUser ? session.from : session.to,
       receiver: isUser ? session.to : session.from,
       body: message.content?.toString() ?? "",
       direction: isUser ? "inbound" : "outbound",
     });
+    broadcast({ type: "new_message", message: saved });
   }
 }
 
-export function attachWebSocket(server: Server): WebSocketServer {
-  const wss = new WebSocketServer({ server, path: "/twilio/relay" });
+export function createWebSocketServer(): WebSocketServer {
+  const wss = new WebSocketServer({ noServer: true });
 
   wss.on("connection", (ws) => {
     logger.debug("ConversationRelay WebSocket connection established");

@@ -18,6 +18,11 @@ export type Conversation = {
   contact_phone: string;
 };
 
+function filterParams(obj: Record<string, string | undefined>): URLSearchParams {
+  const filtered = Object.entries(obj).filter(([, v]) => v);
+  return new URLSearchParams(filtered as string[][]);
+}
+
 export async function getSystemPhones(): Promise<string[]> {
   const response = await fetch('/messages/system-phones');
   if (!response.ok) {
@@ -27,11 +32,8 @@ export async function getSystemPhones(): Promise<string[]> {
 }
 
 export async function getMessages(phone?: string, systemPhone?: string): Promise<Message[]> {
-  const params = new URLSearchParams();
-  if (phone) params.set('phone', phone);
-  if (systemPhone) params.set('systemPhone', systemPhone);
-  const qs = params.toString();
-  const response = await fetch(`/messages${qs ? `?${qs}` : ''}`);
+  const params = filterParams({ phone, systemPhone });
+  const response = await fetch(`/messages${params.size ? `?${params}` : ''}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch messages: ${response.status}`);
   }
@@ -39,10 +41,8 @@ export async function getMessages(phone?: string, systemPhone?: string): Promise
 }
 
 export async function getConversations(systemPhone?: string): Promise<Conversation[]> {
-  const params = new URLSearchParams();
-  if (systemPhone) params.set('systemPhone', systemPhone);
-  const qs = params.toString();
-  const response = await fetch(`/messages/conversations${qs ? `?${qs}` : ''}`);
+  const params = filterParams({ systemPhone });
+  const response = await fetch(`/messages/conversations${params.size ? `?${params}` : ''}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch conversations: ${response.status}`);
   }

@@ -4,6 +4,7 @@
     "target": "ESNext",
     "module": "preserve",
     "moduleDetection": "force",
+    "types": ["bun"],
 
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
