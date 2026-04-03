@@ -15,40 +15,41 @@ export function connectNotifications(onEvent: Handler): () => void {
   let retryDelay = 1000;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function getUrl(): string {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${window.location.host}/notifications`;
-  }
-
   function connect() {
-    if (closed) return;
-    ws = new WebSocket(getUrl());
+    if (closed) {
+      return;
+    }
+    ws = new WebSocket('/notifications');
 
-    ws.onopen = () => {
+    ws.addEventListener('open', function open() {
+      console.debug('connection open');
       retryDelay = 1000;
-    };
+    });
 
-    ws.onmessage = (e) => {
+    ws.addEventListener('message', function message(e) {
+      console.debug('message received');
       try {
-        const event = JSON.parse(e.data as string) as NotificationEvent;
+        const event = JSON.parse(e.data) as NotificationEvent;
         onEvent(event);
       } catch {
         // ignore malformed messages
       }
-    };
+    });
 
-    ws.onclose = () => {
+    ws.addEventListener('close', function close() {
+      console.debug('closed');
       if (!closed) {
         retryTimer = setTimeout(() => {
           retryDelay = Math.min(retryDelay * 2, 30000);
           connect();
         }, retryDelay);
       }
-    };
+    });
 
-    ws.onerror = () => {
+    ws.addEventListener('error', function error(err) {
+      console.error({ err });
       ws?.close();
-    };
+    });
   }
 
   connect();

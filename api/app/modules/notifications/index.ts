@@ -13,11 +13,12 @@ export type NewMessageEvent = {
 };
 
 export function broadcast(event: NewMessageEvent): void {
-  logger.debug({ event }, "broadcasting");
+  logger.debug({ type: event.type }, "broadcasting");
   if (clients.size === 0) return;
   const data = JSON.stringify(event);
   for (const client of clients) {
     if (client.readyState === client.OPEN) {
+      logger.debug("open and ready");
       client.send(data);
     }
   }

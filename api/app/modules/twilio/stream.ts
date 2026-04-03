@@ -53,7 +53,7 @@ async function handleSetup(ws: WebSocket, msg: SetupEvent): Promise<void> {
       msg.to,
     );
     messages = history.map((m) => ({
-      role: m.direction === "inbound" ? "user" : ("assistant" as const),
+      role: m.direction === "inbound" ? "user" : "assistant",
       content: m.body,
     }));
     if (messages.length) {
@@ -85,11 +85,6 @@ async function handlePrompt(ws: WebSocket, msg: PromptEvent): Promise<void> {
     logger.debug("prompt: no session found for this WebSocket");
     return;
   }
-
-  logger.debug(
-    { callSid: session.callSid, length: msg.voicePrompt.length },
-    "prompt",
-  );
 
   session.abortController?.abort();
   const abortController = new AbortController();

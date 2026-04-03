@@ -4,16 +4,12 @@ import { sessionStore, stream } from "./modules/twilio";
 import * as notifications from "./modules/notifications";
 import { hasMcp, getTools } from "./modules/llm/mcp";
 import appLogger from "./shared/logger";
+import { createServer } from "http";
 
 const logger = appLogger.child({ module: "server" });
 
 const app = createApp();
-
-const server = app.listen(config.PORT, () => {
-  logger.info(`Server is listening on port ${config.PORT}`);
-  logger.info(`Environment: ${config.NODE_ENV}`);
-});
-
+const server = createServer(app);
 const relayWss = stream.createWebSocketServer();
 const notificationsWss = notifications.createWebSocketServer();
 
@@ -32,6 +28,11 @@ server.on("upgrade", (request, socket, head) => {
   } else {
     socket.destroy();
   }
+});
+
+server.listen(config.PORT, () => {
+  logger.info(`Server is listening on port ${config.PORT}`);
+  logger.info(`Environment: ${config.NODE_ENV}`);
 });
 
 sessionStore.startCleanup();

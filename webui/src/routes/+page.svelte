@@ -63,6 +63,7 @@
     await loadConversations();
 
     disconnect = connectNotifications(async (event) => {
+      console.log(event);
       if (event.type !== 'new_message') {
         return;
       }
