@@ -14,18 +14,17 @@ A virtual assistant application that processes phone calls and text messages via
 
 ### Docker Stack
 
-Services are split across **profiles** so only what you need is built and started:
+Services are split across **compose files** that are layered together:
 
-| Service      | No profile | `--profile dev` | `--profile prod` |
-|--------------|:----------:|:---------------:|:-----------------:|
-| **api**      | x          | x               | x                 |
-| **database** | x          | x               | x                 |
-| webui-dev    |            | x               |                   |
-| ngrok        |            | x               |                   |
-| webui        |            |                 | x                 |
-| nginx        |            |                 | x                 |
+| Service      | `compose.yaml` | `compose.dev.yaml` | `compose.prod.yaml` |
+|--------------|:--------------:|:------------------:|:-------------------:|
+| **database** | x              | x                  | x                   |
+| **api**      | x (base)       | x (dev build)      | x (prod build)      |
+| webui        |                | x (dev server)     | x (static build)    |
+| ngrok        |                | x                  |                     |
+| nginx        |                |                    | x                   |
 
-#### Production (`--profile prod`)
+#### Production (`compose.yaml` + `compose.prod.yaml`)
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -49,12 +48,12 @@ Services are split across **profiles** so only what you need is built and starte
     (volume)
 ```
 
-#### Development (`--profile dev`)
+#### Development (`compose.yaml` + `compose.dev.yaml`)
 
 ```
   ┌─────────────┐        ┌─────────────┐      ┌──────────┐
-  │  webui-dev  │        │     api     │ ──── │ database │
-  │  (:5173)    │        │  (internal) │      │          │
+  │    webui    │        │     api     │ ──── │ database │
+  │  (:5173)    │        │  (dev)      │      │          │
   └─────────────┘        └─────────────┘      └──────────┘
                                 ▲
                                 │
@@ -64,7 +63,7 @@ Services are split across **profiles** so only what you need is built and starte
                           └───────────┘
 ```
 
-1. **NGINX** (`nginx/`) — *prod profile*
+1. **NGINX** (`nginx/`) — *prod only*
    - Reverse proxy and static file server
    - Routes API and WebSocket traffic to backend
    - Serves static frontend assets
@@ -73,23 +72,19 @@ Services are split across **profiles** so only what you need is built and starte
 2. **API Backend** (`api/`)
    - Express + TypeScript server on Bun runtime
    - Twilio webhook handlers for voice and SMS
-   - WebSocket server for real-time voice streaming
+   - WebSocket server for ConversationRelay
    - Venice AI integration for LLM completions
 
-3. **Web UI** (`webui/`) — *prod profile*
+3. **Web UI** (`webui/`)
    - SvelteKit 2 + Tailwind CSS 4 + DaisyUI
-   - One-shot container that builds static files to a shared volume
-   - Chat-style conversation interface
+   - **Dev**: Vite dev server with HMR on port 5173, bind-mounts source
+   - **Prod**: One-shot container that builds static files to a shared volume
 
-4. **Web UI Dev** (`webui-dev`) — *dev profile*
-   - Runs the Vite dev server with HMR on port 5173
-   - Bind-mounts source for live editing
-
-5. **Database**
+4. **Database**
    - PostgreSQL 18 Alpine
    - Message storage with indexed queries
 
-6. **ngrok** — *dev profile*
+5. **ngrok** — *dev only*
    - Tunnels directly to the API for Twilio webhook testing
 
 ### Tech Stack
@@ -117,7 +112,7 @@ Services are split across **profiles** so only what you need is built and starte
 
 ```bash
 # Start complete stack (api, database, webui build, nginx)
-docker compose --profile prod up
+docker compose -f compose.yaml -f compose.prod.yaml up
 ```
 
 Everything is available at `http://localhost` — nginx routes to the appropriate service.
@@ -125,8 +120,8 @@ Everything is available at `http://localhost` — nginx routes to the appropriat
 ### Development (containerized)
 
 ```bash
-# Start dev stack (api, database, webui-dev with HMR, ngrok)
-docker compose --profile dev up
+# Start dev stack (api, database, webui with HMR, ngrok)
+docker compose -f compose.yaml -f compose.dev.yaml up
 ```
 
 - Web UI dev server: `http://localhost:5173`
@@ -195,14 +190,14 @@ PUBLIC_HOST=your-static-domain.ngrok-free.app
 NGROK_AUTHTOKEN=your-auth-token
 ```
 
-### 3. Run with dev profile
+### 3. Run with dev compose
 
 ```bash
 # Start dev stack (includes ngrok)
-docker compose --profile dev up
+docker compose -f compose.yaml -f compose.dev.yaml up
 
 # Or start just ngrok alongside existing services
-docker compose --profile dev up ngrok
+docker compose -f compose.yaml -f compose.dev.yaml up ngrok
 ```
 
 The ngrok web UI is available at http://localhost:4040 to inspect requests.
@@ -294,8 +289,7 @@ Voice transcription and AI-powered responses may have legal requirements that va
 
 ### Cost Management
 
-- Twilio real-time transcription incurs per-minute costs
-- Twilio Media Streams are billed per minute
+- Twilio ConversationRelay is billed per minute (includes STT and TTS)
 - Venice AI API usage is metered
 - Consider implementing usage limits or cost tracking
 

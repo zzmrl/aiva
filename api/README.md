@@ -7,12 +7,13 @@ Express + TypeScript API running on Bun. See the [project README](../README.md) 
 ```
 api/
 ├── modules/              # Feature modules
-│   ├── llm/              # Venice AI integration (completions)
+│   ├── llm/              # Venice AI integration (completions, MCP)
 │   ├── message/          # Message CRUD and conversation handling
-│   └── twilio/           # Twilio webhook handlers (SMS/voice)
+│   └── twilio/           # Twilio webhook handlers, ConversationRelay WS, session store
 ├── shared/               # Cross-cutting infrastructure
 │   ├── database/         # PostgreSQL client (Bun SQL)
 │   ├── errors/           # Error types and handling
+│   ├── logger.ts         # Structured logger
 │   └── middleware/       # Express middleware (rate limiting, validation)
 ├── test/                 # Integration tests
 ├── config.ts             # Environment validation (Zod)
@@ -27,18 +28,19 @@ api/
 bun install       # Install dependencies
 bun dev           # Dev server with hot reload
 bun test          # Run tests
-bun lint          # Lint
+bun run build     # Compile TypeScript
 bun type-check    # Type check
+bun lint          # Lint
 ```
 
 Use [ngrok](https://ngrok.com/) or similar to receive Twilio webhooks locally.
 
 ## Module Structure
 
-| File       | Responsibility                                        |
-| ---------- | ----------------------------------------------------- |
-| controller | HTTP layer — parse requests, call services, format responses |
-| service    | Business logic, orchestration, domain errors          |
-| repository | Data access, query building, no business logic        |
-| routes     | Route definitions, middleware wiring                  |
-| validation | Request schema definitions                            |
+| File         | Responsibility                                              |
+| ------------ | ----------------------------------------------------------- |
+| controller   | HTTP layer — parse requests, call services, format responses |
+| service      | Business logic, orchestration, domain errors                |
+| repository   | Data access, query building, no business logic              |
+| routes       | Route definitions, middleware wiring                        |
+| validation   | Request schema definitions                                  |

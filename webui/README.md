@@ -1,18 +1,41 @@
 # AIVA WebUI
 
-Made using [SvelteKit](https://svelte.dev/docs/kit/introduction) and [Bun](https://bun.com/docs)
+SvelteKit 2 + Tailwind CSS 4 + DaisyUI frontend. Displays conversations and messages fetched from the API. See the [project README](../README.md) for full setup and environment details.
 
-## Usage
+## Directory Structure
 
-### With Docker
-
-```sh
-docker build -t aiva-webui . # build the image
-docker run -p 3000:3000 aiva-webui # run the container
+```
+webui/
+├── src/
+│   ├── lib/              # Shared components and utilities
+│   │   ├── api.ts        # API client (types + fetch helpers)
+│   │   ├── utils.ts      # Shared utilities
+│   │   ├── ChatBubble.svelte
+│   │   ├── ConversationList.svelte
+│   │   ├── ConversationView.svelte
+│   │   └── ThemeSwap.svelte
+│   └── routes/           # SvelteKit pages
+│       ├── +layout.svelte
+│       ├── +layout.ts
+│       └── +page.svelte  # Main conversations view
+├── tests/                # Playwright E2E tests
+└── static/               # Static assets
 ```
 
-This application expects a connection to the backend which may break if not running as a part of the entire compose stack.
+## Development
+
+```bash
+bun install       # Install dependencies
+bun dev           # Vite dev server (port 5173)
+bun run build     # Production build
+bun check         # Svelte type checking
+bun lint          # ESLint + Prettier check
+bun format        # Format code
+bun test          # Run all tests
+bun test:unit     # Unit tests (Vitest)
+bun test:e2e      # E2E tests (Playwright)
+```
 
 ## Environment Variables
 
-- `PUBLIC_API_HOST` - The host of the API backend, defaults to `http://localhost:3000`
+- `PUBLIC_API_HOST` — API backend URL for local development (default: `http://localhost:3274`)
