@@ -35,7 +35,3 @@ bun test          # Run all tests
 bun test:unit     # Unit tests (Vitest)
 bun test:e2e      # E2E tests (Playwright)
 ```
-
-## Environment Variables
-
-- `PUBLIC_API_HOST` — API backend URL for local development (default: `http://localhost:3274`)

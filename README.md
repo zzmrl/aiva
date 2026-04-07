@@ -239,11 +239,7 @@ Set your Twilio phone number webhooks to:
 - `DB_USER` - Database username
 - `DB_PASSWORD` - Database password
 
-### Web UI (local development only)
-
-- `PUBLIC_API_HOST` - API backend URL (default: http://localhost:3274)
-
-### ngrok (dev profile)
+### ngrok (dev)
 
 - `NGROK_AUTHTOKEN` - (optional) Auth token from ngrok dashboard
 
