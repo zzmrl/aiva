@@ -94,17 +94,11 @@ api/app/
 Requires: Bun, Docker/Docker Compose, a `.env` file (see `.env.example`)
 
 ```bash
-# Start database, run migrations, and both dev servers (from root)
-scripts/dev
-
-# Or manually:
 docker compose up -d database
 scripts/migrate up
 cd api && bun dev          # API dev server with --watch
 cd webui && bun dev        # Vite dev server
 ```
-
-The `scripts/dev` script also loads `.env` and starts the ngrok tunnel when running the full `dev` compose profile.
 
 ### API Development
 

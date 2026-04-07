@@ -137,13 +137,6 @@ docker compose --profile dev up
 Requires Bun and Docker installed.
 
 ```bash
-# Start database + both dev servers
-./scripts/dev
-```
-
-Or run manually:
-
-```bash
 # Start database
 docker compose up -d database
 
