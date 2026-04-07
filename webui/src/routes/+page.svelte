@@ -12,14 +12,25 @@
   import ConversationView from '$lib/ConversationView.svelte';
   import ErrorIcon from '$lib/icons/ErrorIcon.svelte';
 
-  let systemPhones: string[] = $state([]);
-  let selectedSystemPhone: string | null = $state(null);
-  let conversations: Conversation[] = $state([]);
-  let messages: Message[] = $state([]);
+  let systemPhones = $state<string[]>([]);
+  let selectedSystemPhone = $state<string | null>(null);
+  let conversations = $state<Conversation[]>([]);
+  let messages = $state<Message[]>([]);
   let loading = $state(true);
   let messagesLoading = $state(false);
-  let error: unknown = $state(null);
-  let selectedPhone: string | null = $state(null);
+  let error = $state<unknown>(null);
+  let selectedPhone = $state<string | null>(null);
+
+  async function loadConversations() {
+    try {
+      conversations = await getConversations(selectedSystemPhone ?? undefined);
+    } catch (err) {
+      console.error(err);
+      error = err;
+    } finally {
+      loading = false;
+    }
+  }
 
   onMount(async () => {
     try {
@@ -29,32 +40,17 @@
       }
     } catch (err) {
       console.error('Failed to fetch system phones', err);
-      // fall through — selectedSystemPhone stays null, load all conversations
     }
-    try {
-      conversations = await getConversations(selectedSystemPhone ?? undefined);
-    } catch (err) {
-      console.error(err);
-      error = err;
-    } finally {
-      loading = false;
-    }
+    await loadConversations();
   });
 
-  async function selectSystemPhone(phone: string) {
+  async function selectSystemPhone(phone: string | null) {
     selectedSystemPhone = phone;
     selectedPhone = null;
     messages = [];
     loading = true;
     error = null;
-    try {
-      conversations = await getConversations(phone);
-    } catch (err) {
-      console.error(err);
-      error = err;
-    } finally {
-      loading = false;
-    }
+    await loadConversations();
   }
 
   async function selectConversation(phone: string) {
@@ -79,16 +75,20 @@
 <div class="flex h-full">
   <!-- Conversation list sidebar -->
   <div
-    class="w-full md:w-80 md:border-r md:border-base-300 shrink-0 {selectedPhone
-      ? 'hidden md:flex md:flex-col'
-      : 'flex flex-col'}"
+    class={[
+      'w-full',
+      'md:w-80',
+      'md:border-r',
+      'md:border-base-300',
+      'shrink-0',
+      selectedPhone ? 'hidden md:flex md:flex-col' : 'flex flex-col',
+    ]}
   >
     {#if systemPhones.length > 1}
       <div class="p-3 border-b border-base-300">
         <select
           class="select select-sm w-full"
-          value={selectedSystemPhone}
-          onchange={(e) => selectSystemPhone((e.target as HTMLSelectElement).value)}
+          bind:value={() => selectedSystemPhone, (v) => selectSystemPhone(v)}
           aria-label="Select system phone number"
         >
           {#each systemPhones as phone (phone)}
@@ -122,7 +122,7 @@
   </div>
 
   <!-- Chat view -->
-  <div class="flex-1 {selectedPhone ? 'flex flex-col' : 'hidden md:flex md:flex-col'}">
+  <div class={['flex-1', selectedPhone ? 'flex flex-col' : 'hidden md:flex md:flex-col']}>
     {#if selectedPhone}
       {#if messagesLoading}
         <div

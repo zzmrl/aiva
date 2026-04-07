@@ -14,25 +14,13 @@
 
   let searchQuery = $state('');
 
-  function truncate(text: string, maxLength: number): string {
-    if (text.length <= maxLength) return text;
-    return text.slice(0, maxLength) + '...';
-  }
-
-  function getContactPhone(conversation: Conversation): string {
-    return conversation.contact_phone;
-  }
-
   function filterConversations(convos: Conversation[], query: string): Conversation[] {
     if (!query.trim()) return convos;
     const cleaned = query
       .toLowerCase()
       .trim()
       .replace(/\+|\(|\)|-|\s/g, '');
-    return convos.filter((c) => {
-      const contact = getContactPhone(c);
-      return contact.includes(cleaned);
-    });
+    return convos.filter((c) => c.contact_phone.includes(cleaned));
   }
 
   const filteredConversations = $derived(filterConversations(conversations, searchQuery));
@@ -50,7 +38,7 @@
   </div>
   <ul class="overflow-y-auto flex-1" role="list" aria-label="Conversations">
     {#each filteredConversations as conversation (conversation.phone1 + conversation.phone2)}
-      {@const contactPhone = getContactPhone(conversation)}
+      {@const contactPhone = conversation.contact_phone}
       <li>
         <button
           class="w-full text-left px-4 py-3 hover:bg-base-200 transition-colors border-b border-base-300 {selectedPhone ===
@@ -67,7 +55,7 @@
             >
           </div>
           <p class="text-sm text-base-content/60 mt-1 truncate">
-            {truncate(conversation.last_message_body, 50)}
+            {conversation.last_message_body}
           </p>
         </button>
       </li>

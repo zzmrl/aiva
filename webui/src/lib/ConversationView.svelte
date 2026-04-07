@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte';
+  import { tick } from 'svelte';
   import type { Message } from './api';
   import ChatBubble from './ChatBubble.svelte';
   import { formatPhoneNumber } from './utils';
@@ -22,10 +22,6 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
   }
-
-  onMount(() => {
-    scrollToBottom();
-  });
 
   $effect(() => {
     if (messages.length) {
