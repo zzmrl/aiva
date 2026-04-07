@@ -1,20 +1,8 @@
 services:
   api:
     build: ./api
-    restart: unless-stopped
-    expose:
-      - "3274"
     environment:
-      PORT: 3274
       NODE_ENV: production
-      LOG_LEVEL: $LOG_LEVEL
-      DATABASE_URL: ${DATABASE_URL:?Database connection string}
-      PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
-      VENICE_API_KEY: ${VENICE_API_KEY:?Venice API key found in settings}
-      AUTOMATE_IT_API_KEY: $AUTOMATE_IT_API_KEY
-    depends_on:
-      database:
-        condition: service_healthy
 
   webui:
     build: ./webui
