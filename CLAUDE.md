@@ -33,10 +33,19 @@ AIVA (Automate.It Virtual Assistant) is a virtual assistant application that pro
    - Reverse proxy for prod — serves static WebUI files and proxies API requests
    - Custom config in `nginx/conf.d/`
 
-### Docker Compose Profiles
+### Docker Compose Files
 
-- **`dev`**: `database`, `api-dev`, `webui-dev`, `ngrok`
-- **`prod`**: `database`, `api`, `webui`, `nginx`
+- **`compose.yaml`**: `database` (base, always included)
+- **`compose.dev.yaml`**: `api-dev`, `webui-dev`, `ngrok`
+- **`compose.prod.yaml`**: `api`, `webui`, `nginx`
+
+```bash
+# Dev (all services in Docker)
+docker compose -f compose.yaml -f compose.dev.yaml up
+
+# Prod
+docker compose -f compose.yaml -f compose.prod.yaml up
+```
 
 ### Key Data Flow
 
@@ -140,8 +149,8 @@ Migrations use [dbmate](https://github.com/amacneil/dbmate) and live in `db/migr
 ### Production Build
 
 ```bash
-# Build and run entire stack (prod profile)
-docker compose --profile prod up
+# Build and run entire stack (prod)
+docker compose -f compose.yaml -f compose.prod.yaml up
 
 # Build individual services
 docker compose build api

@@ -1,0 +1,42 @@
+services:
+  api:
+    build: ./api
+    restart: unless-stopped
+    expose:
+      - "3274"
+    environment:
+      PORT: 3274
+      NODE_ENV: production
+      LOG_LEVEL: $LOG_LEVEL
+      DATABASE_URL: ${DATABASE_URL:?Database connection string}
+      PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
+      VENICE_API_KEY: ${VENICE_API_KEY:?Venice API key found in settings}
+      AUTOMATE_IT_API_KEY: $AUTOMATE_IT_API_KEY
+    depends_on:
+      database:
+        condition: service_healthy
+
+  webui:
+    build: ./webui
+    restart: "no"
+    volumes:
+      - static_files:/output
+
+  nginx:
+    build: ./nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - static_files:/usr/share/nginx/html:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      api:
+        condition: service_started
+      webui:
+        condition: service_completed_successfully
+
+volumes:
+  static_files:
+  nginx_logs:

@@ -1,0 +1,49 @@
+services:
+  api-dev:
+    build:
+      context: ./api
+      target: dev
+    restart: unless-stopped
+    expose:
+      - "3274"
+    environment:
+      PORT: 3274
+      NODE_ENV: development
+      LOG_LEVEL: $LOG_LEVEL
+      DATABASE_URL: ${DATABASE_URL:?Database connection string}
+      PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
+      VENICE_API_KEY: ${VENICE_API_KEY:?Venice API key found in settings}
+      AUTOMATE_IT_API_KEY: $AUTOMATE_IT_API_KEY
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - ./api:/api
+
+  webui-dev:
+    build:
+      context: ./webui
+      target: dev
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
+      API_HOST: api-dev
+    volumes:
+      - ./webui:/app
+      - /app/node_modules
+    depends_on:
+      api-dev:
+        condition: service_started
+
+  ngrok:
+    image: ngrok/ngrok:alpine
+    restart: unless-stopped
+    command: http http://api-dev:3274 --url ${PUBLIC_HOST:?Static ngrok domain}
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?Ngrok auth token found in dashboard}
+    ports:
+      - "4040:4040"
+    depends_on:
+      - api-dev

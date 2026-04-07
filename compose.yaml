@@ -1,37 +1,5 @@
 name: aiva
 services:
-  api:
-    build: ./api
-    profiles: [prod]
-    restart: unless-stopped
-    expose: &api-expose
-      - "3274"
-    environment: &api-environment
-      PORT: 3274
-      NODE_ENV: production
-      LOG_LEVEL: $LOG_LEVEL
-      DATABASE_URL: ${DATABASE_URL:?Database connection string}
-      PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
-      VENICE_API_KEY: ${VENICE_API_KEY:?Venice API key found in settings}
-      AUTOMATE_IT_API_KEY: $AUTOMATE_IT_API_KEY
-    depends_on: &api-depends_on
-      database:
-        condition: service_healthy
-
-  api-dev:
-    build:
-      context: ./api
-      target: dev
-    profiles: [dev]
-    restart: unless-stopped
-    expose: *api-expose
-    environment:
-      <<: *api-environment
-      NODE_ENV: development
-    depends_on: *api-depends_on
-    volumes:
-      - ./api:/api
-
   database:
     image: postgres:18-alpine
     restart: unless-stopped
@@ -47,60 +15,5 @@ services:
       timeout: 10s
       retries: 5
 
-  webui:
-    build: ./webui
-    profiles: [prod]
-    restart: "no"
-    volumes:
-      - static_files:/output
-
-  webui-dev:
-    build:
-      context: ./webui
-      target: dev
-    profiles: [dev]
-    restart: unless-stopped
-    ports:
-      - "5173:5173"
-    environment:
-      PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
-      API_HOST: api-dev
-    volumes:
-      - ./webui:/app
-      - /app/node_modules
-    depends_on:
-      api-dev:
-        condition: service_started
-
-  nginx:
-    build: ./nginx
-    profiles: [prod]
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - static_files:/usr/share/nginx/html:ro
-      - nginx_logs:/var/log/nginx
-    depends_on:
-      api:
-        condition: service_started
-      webui:
-        condition: service_completed_successfully
-
-  ngrok:
-    image: ngrok/ngrok:alpine
-    profiles: [dev]
-    restart: unless-stopped
-    command: http http://api-dev:3274 --url ${PUBLIC_HOST:?Static ngrok domain}
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?Ngrok auth token found in dashboard}
-    ports:
-      - "4040:4040"
-    depends_on:
-      - api-dev
-
 volumes:
   postgres_data:
-  static_files:
-  nginx_logs:
