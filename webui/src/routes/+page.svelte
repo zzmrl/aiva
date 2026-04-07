@@ -61,8 +61,7 @@
     selectedPhone = phone;
     messagesLoading = true;
     try {
-      const fetched = await getMessages(phone, selectedSystemPhone ?? undefined);
-      messages = fetched.reverse();
+      messages = await getMessages(phone, selectedSystemPhone ?? undefined);
     } catch (err) {
       console.error(err);
       messages = [];

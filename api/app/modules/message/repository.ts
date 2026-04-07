@@ -46,7 +46,7 @@ export async function findMany(
     SELECT *
     FROM messages
     WHERE ${byPhone} AND ${bySystemPhone}
-    ORDER BY created DESC
+    ORDER BY created ASC
   `;
 }
 
