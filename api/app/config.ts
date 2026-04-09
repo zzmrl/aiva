@@ -1,29 +1,7 @@
 import { z } from "zod";
-import { file } from "bun";
 import appLogger from "./shared/logger";
 
 const logger = appLogger.child({ module: "config" });
-
-async function resolveSecrets(
-  env: NodeJS.ProcessEnv,
-): Promise<Record<string, string | undefined>> {
-  const resolved: Record<string, string | undefined> = { ...env };
-
-  for (const [key, value] of Object.entries(env)) {
-    if (key?.endsWith("_FILE") && value) {
-      const baseKey = key.slice(0, -5);
-      try {
-        resolved[baseKey] = (await file(value).text()).trim();
-      } catch {
-        // let zod handle
-      }
-    }
-  }
-
-  return resolved;
-}
-
-const environment = await resolveSecrets(process.env);
 
 const envSchema = z.object({
   NODE_ENV: z
@@ -37,6 +15,7 @@ const envSchema = z.object({
   AUTOMATE_IT_API_KEY: z.string().min(1).optional(),
 });
 
+const environment = process.env;
 const parsed = envSchema.safeParse(environment);
 
 if (!parsed.success) {
