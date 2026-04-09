@@ -15,7 +15,7 @@ AIVA (Automate.It Virtual Assistant) is a virtual assistant application that pro
    - Runs on Bun runtime
    - Connects to Venice AI API for LLM completions
    - Database interactions via Bun's native `SQL` client using `DATABASE_URL`
-   - Routes: `GET /health`, `GET|POST /messages`, `GET /messages/conversations`, `GET /messages/:id`, `POST /twilio/voice`, `POST /twilio/sms`
+   - Routes: `GET /health`, `GET /messages`, `GET /messages/conversations`, `GET /messages/:id`, `POST /twilio/voice`, `POST /twilio/sms`
    - WebSocket endpoint at `/twilio/relay` for Twilio ConversationRelay
 
 2. **Database** (`database` service)

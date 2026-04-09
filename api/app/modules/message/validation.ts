@@ -13,11 +13,3 @@ export const messageIdSchema = {
   }),
 };
 
-export const createMessageSchema = {
-  body: z.object({
-    sender: z.string().min(1),
-    receiver: z.string().min(1),
-    body: z.string(),
-    direction: z.enum(["inbound", "outbound"]).default("inbound"),
-  }),
-};

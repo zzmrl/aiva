@@ -175,7 +175,6 @@ Set your Twilio phone number webhooks to:
 - `GET /messages` - List messages (with optional filters)
 - `GET /messages/conversations` - List conversations grouped by phone number
 - `GET /messages/:id` - Get message by ID
-- `POST /messages` - Create a message
 
 ### System
 - `GET /health` - Health check

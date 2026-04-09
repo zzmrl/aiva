@@ -14,11 +14,6 @@ export const getById: RequestHandler = async (req, res) => {
   res.json(message);
 };
 
-export const create: RequestHandler = async (req, res) => {
-  const message = await service.create(req.body);
-  res.status(201).json(message);
-};
-
 export const listConversations: RequestHandler = async (req, res) => {
   const systemPhone = req.query.systemPhone as string | undefined;
   const conversations = await service.listConversations(systemPhone);
