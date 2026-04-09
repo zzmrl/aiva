@@ -8,15 +8,15 @@ AIVA (Automate.It Virtual Assistant) is a virtual assistant application that pro
 
 ## Architecture
 
-### Three-tier Docker Compose Stack
+### Docker Compose Stack
 
 1. **API Backend** (`api/`)
    - Express 5 + TypeScript server handling Twilio webhooks
    - Runs on Bun runtime
-   - Connects to Venice AI API for LLM completions and TTS
+   - Connects to Venice AI API for LLM completions
    - Database interactions via Bun's native `SQL` client using `DATABASE_URL`
-   - Routes: `GET /health`, `GET|POST /messages`, `GET /messages/conversations`, `GET /messages/:id`, `POST /twilio/voice`, `POST /twilio/transcription-events`, `POST /twilio/sms`
-   - WebSocket endpoint at `/twilio/stream` for Twilio Media Streams
+   - Routes: `GET /health`, `GET|POST /messages`, `GET /messages/conversations`, `GET /messages/:id`, `POST /twilio/voice`, `POST /twilio/sms`
+   - WebSocket endpoint at `/twilio/relay` for Twilio ConversationRelay
 
 2. **Database** (`database` service)
    - PostgreSQL 18 Alpine
@@ -26,25 +26,15 @@ AIVA (Automate.It Virtual Assistant) is a virtual assistant application that pro
 
 3. **Web UI** (`webui/`)
    - SvelteKit 2 + Tailwind CSS 4 + DaisyUI
-   - Static build served by NGINX (prod) or Vite dev server (dev)
+   - Vite dev server (dev)
    - Displays messages fetched from API `/messages` endpoint
 
-4. **NGINX** (`nginx/`)
-   - Reverse proxy for prod — serves static WebUI files and proxies API requests
-   - Custom config in `nginx/conf.d/`
+### Docker Compose
 
-### Docker Compose Files
-
-- **`compose.yaml`**: `database` (base, always included)
-- **`compose.dev.yaml`**: `api-dev`, `webui-dev`, `ngrok`
-- **`compose.prod.yaml`**: `api`, `webui`, `nginx`
+All services are defined in `compose.yaml`:
 
 ```bash
-# Dev (all services in Docker)
-docker compose -f compose.yaml -f compose.dev.yaml up
-
-# Prod
-docker compose -f compose.yaml -f compose.prod.yaml up
+docker compose up
 ```
 
 ### Key Data Flow
@@ -94,6 +84,10 @@ api/app/
 Requires: Bun, Docker/Docker Compose, a `.env` file (see `.env.example`)
 
 ```bash
+# Run everything in Docker
+docker compose up
+
+# Or run services locally (requires Bun)
 docker compose up -d database
 scripts/migrate up
 cd api && bun dev          # API dev server with --watch
@@ -139,17 +133,6 @@ scripts/psql             # Open psql shell in running database container
 ```
 
 Migrations use [dbmate](https://github.com/amacneil/dbmate) and live in `db/migrations/`.
-
-### Production Build
-
-```bash
-# Build and run entire stack (prod)
-docker compose -f compose.yaml -f compose.prod.yaml up
-
-# Build individual services
-docker compose build api
-docker compose build web
-```
 
 ### Testing
 

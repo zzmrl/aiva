@@ -14,41 +14,16 @@ A virtual assistant application that processes phone calls and text messages via
 
 ### Docker Stack
 
-Services are split across **compose files** that are layered together:
+All services are defined in a single `compose.yaml`:
 
-| Service      | `compose.yaml` | `compose.dev.yaml` | `compose.prod.yaml` |
-|--------------|:--------------:|:------------------:|:-------------------:|
-| **database** | x              | x                  | x                   |
-| **api**      | x (base)       | x (dev build)      | x (prod build)      |
-| webui        |                | x (dev server)     | x (static build)    |
-| ngrok        |                | x                  |                     |
-| nginx        |                |                    | x                   |
+| Service      | Description          |
+|--------------|----------------------|
+| **database** | PostgreSQL           |
+| **api**      | Express API (dev)    |
+| **webui**    | Vite dev server      |
+| **ngrok**    | Webhook tunnel       |
 
-#### Production (`compose.yaml` + `compose.prod.yaml`)
-
-```
-┌──────────────────────────────────────────────────────┐
-│                  nginx (:80/:443)                    │
-│  ┌────────────────────────────────────────────────┐  │
-│  │  /            → static files (from webui)      │  │
-│  │  /messages/*  → proxy to api                   │  │
-│  │  /health      → proxy to api                   │  │
-│  │  /twilio/*    → proxy to api (+ WebSocket)     │  │
-│  └────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────┘
-        ▲                            │
-        │                            ▼
-   ┌────┴────┐                ┌─────────────┐      ┌──────────┐
-   │  webui  │                │     api     │ ──── │ database │
-   │ (build) │                │  (internal) │      │          │
-   └────┬────┘                └─────────────┘      └──────────┘
-        │
-        ▼
-  static_files
-    (volume)
-```
-
-#### Development (`compose.yaml` + `compose.dev.yaml`)
+#### Development
 
 ```
   ┌─────────────┐        ┌─────────────┐      ┌──────────┐
@@ -63,28 +38,21 @@ Services are split across **compose files** that are layered together:
                           └───────────┘
 ```
 
-1. **NGINX** (`nginx/`) — *prod only*
-   - Reverse proxy and static file server
-   - Routes API and WebSocket traffic to backend
-   - Serves static frontend assets
-   - SSL termination (when configured)
-
-2. **API Backend** (`api/`)
+1. **API Backend** (`api/`)
    - Express + TypeScript server on Bun runtime
    - Twilio webhook handlers for voice and SMS
    - WebSocket server for ConversationRelay
    - Venice AI integration for LLM completions
 
-3. **Web UI** (`webui/`)
+2. **Web UI** (`webui/`)
    - SvelteKit 2 + Tailwind CSS 4 + DaisyUI
-   - **Dev**: Vite dev server with HMR on port 5173, bind-mounts source
-   - **Prod**: One-shot container that builds static files to a shared volume
+   - Vite dev server with HMR on port 5173
 
-4. **Database**
+3. **Database**
    - PostgreSQL 18 Alpine
    - Message storage with indexed queries
 
-5. **ngrok** — *dev only*
+4. **ngrok** — *dev only*
    - Tunnels directly to the API for Twilio webhook testing
 
 ### Tech Stack
@@ -92,11 +60,10 @@ Services are split across **compose files** that are layered together:
 - **Runtime**: Bun
 - **Backend**: Express, TypeScript, WebSocket (ws)
 - **Frontend**: SvelteKit 2, Tailwind CSS 4, DaisyUI
-- **Proxy**: NGINX
 - **Database**: PostgreSQL 18
 - **AI**: Venice AI (OpenAI-compatible API)
 - **Telephony**: Twilio Voice & SMS with ConversationRelay
-- **Infrastructure**: Docker Compose
+- **Infrastructure**: Docker Compose, Railway
 
 ## Requirements
 
@@ -108,20 +75,10 @@ Services are split across **compose files** that are layered together:
 
 ## Quick Start
 
-### Production
-
-```bash
-# Start complete stack (api, database, webui build, nginx)
-docker compose -f compose.yaml -f compose.prod.yaml up
-```
-
-Everything is available at `http://localhost` — nginx routes to the appropriate service.
-
 ### Development (containerized)
 
 ```bash
-# Start dev stack (api, database, webui with HMR, ngrok)
-docker compose -f compose.yaml -f compose.dev.yaml up
+docker compose up
 ```
 
 - Web UI dev server: `http://localhost:5173`
@@ -193,11 +150,10 @@ NGROK_AUTHTOKEN=your-auth-token
 ### 3. Run with dev compose
 
 ```bash
-# Start dev stack (includes ngrok)
-docker compose -f compose.yaml -f compose.dev.yaml up
+docker compose up
 
 # Or start just ngrok alongside existing services
-docker compose -f compose.yaml -f compose.dev.yaml up ngrok
+docker compose up ngrok
 ```
 
 The ngrok web UI is available at http://localhost:4040 to inspect requests.
@@ -255,10 +211,7 @@ Set your Twilio phone number webhooks to:
 │   │   │   └── twilio/    # Voice, SMS, and WebSocket handlers
 │   │   └── shared/        # Database, middleware, errors
 │   └── test/              # API tests
-├── nginx/                 # Reverse proxy
-│   ├── conf.d/            # Server configuration
-│   └── Dockerfile
-├── webui/                 # SvelteKit frontend (builds to volume)
+├── webui/                 # SvelteKit frontend
 │   ├── src/
 │   │   ├── routes/        # SvelteKit pages
 │   │   └── lib/           # Components and utilities

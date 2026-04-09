@@ -16,20 +16,50 @@ services:
       retries: 5
 
   api:
-    build: ./api
+    build:
+      context: ./api
+      target: dev
     restart: unless-stopped
     expose:
       - "3274"
     environment:
+      NODE_ENV: development
       PORT: 3274
       LOG_LEVEL: $LOG_LEVEL
       DATABASE_URL: ${DATABASE_URL:?Database connection string}
       PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
       VENICE_API_KEY: ${VENICE_API_KEY:?Venice API key found in settings}
       AUTOMATE_IT_API_KEY: $AUTOMATE_IT_API_KEY
+    volumes:
+      - ./api:/api
     depends_on:
       database:
         condition: service_healthy
+
+  webui:
+    build:
+      context: ./webui
+      target: dev
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./webui:/app
+      - /app/node_modules
+    depends_on:
+      api:
+        condition: service_started
+
+  ngrok:
+    image: ngrok/ngrok:alpine
+    restart: unless-stopped
+    command: http http://api:3274 --url ${PUBLIC_HOST:?Static ngrok domain}
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?Ngrok auth token found in dashboard}
+    ports:
+      - "4040:4040"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:
