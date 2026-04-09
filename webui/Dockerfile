@@ -21,8 +21,7 @@ COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
 ENV NODE_ENV=production
-RUN bun --bun run check
-RUN bun --bun run build
+RUN bun --bun run check && bun --bun run build
 
 # Minimal image that just holds the static files
 FROM alpine:latest AS release
