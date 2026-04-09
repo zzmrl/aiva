@@ -5,7 +5,8 @@ import express, {
 } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
+import { randomBytes } from "crypto";
 import { join } from "path";
 import { AppError } from "./shared/errors";
 import { generalLimiter, twilioLimiter, log } from "./shared/middleware";
@@ -17,8 +18,23 @@ export function createApp() {
 
   app.set("trust proxy", 1);
 
+  // Generate a per-request nonce before helmet runs
+  app.use((_req, res, next) => {
+    res.locals.nonce = randomBytes(16).toString("base64");
+    next();
+  });
+
   app.use(
-    helmet(),
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          scriptSrc: [
+            "'self'",
+            (_req, res) => `'nonce-${(res as Response).locals.nonce}'`,
+          ],
+        },
+      },
+    }),
     cors(),
     generalLimiter,
     log(),
@@ -35,9 +51,18 @@ export function createApp() {
 
   const publicDir = join(import.meta.dir, "../public");
   if (existsSync(publicDir)) {
-    app.use(express.static(publicDir));
+    // Serve assets but not index.html — the catch-all injects the nonce
+    app.use(express.static(publicDir, { index: false }));
+
+    let indexTemplate: string | null = null;
     app.use((_req, res) => {
-      res.sendFile(join(publicDir, "index.html"));
+      indexTemplate ??= readFileSync(join(publicDir, "index.html"), "utf-8");
+      const html = indexTemplate.replace(
+        /<script/g,
+        `<script nonce="${res.locals.nonce}"`,
+      );
+      res.setHeader("Content-Type", "text/html");
+      res.send(html);
     });
   } else {
     app.use((_req, res) => {
