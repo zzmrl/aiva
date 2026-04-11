@@ -20,7 +20,7 @@ export function handleIncomingCall(): string {
   return twiml.toString();
 }
 
-const SMS_SYNC_TIMEOUT_MS = 10_000;
+const SMS_SYNC_TIMEOUT_MS = Number(process.env.SMS_SYNC_TIMEOUT_MS) || 10_000;
 
 export async function handleIncomingSms(
   to: string,
