@@ -1,8 +1,5 @@
 import { describe, expect, it, mock, beforeEach } from "bun:test";
 
-// Short timeout so the async-fallback tests don't take 10 seconds
-process.env.SMS_SYNC_TIMEOUT_MS = "50";
-
 const mockReplyToMessage = mock(() => Promise.resolve("Hello back!"));
 const mockMessagesCreate = mock(() => Promise.resolve({ sid: "SM123" }));
 
@@ -35,6 +32,7 @@ describe("handleIncomingSms", () => {
   beforeEach(() => {
     mockReplyToMessage.mockClear();
     mockMessagesCreate.mockClear();
+    process.env.SMS_SYNC_TIMEOUT_MS = "10000";
   });
 
   describe("sync path (fast LLM)", () => {
@@ -66,6 +64,7 @@ describe("handleIncomingSms", () => {
     }
 
     it("returns 'One moment...' TwiML when LLM exceeds timeout", async () => {
+      process.env.SMS_SYNC_TIMEOUT_MS = "50";
       const deferred = deferredReply();
       mockReplyToMessage.mockImplementationOnce(() => deferred.promise);
 
@@ -84,6 +83,7 @@ describe("handleIncomingSms", () => {
     });
 
     it("does not call messagesCreate inline on the slow path", async () => {
+      process.env.SMS_SYNC_TIMEOUT_MS = "50";
       const deferred = deferredReply();
       mockReplyToMessage.mockImplementationOnce(() => deferred.promise);
 
@@ -97,6 +97,7 @@ describe("handleIncomingSms", () => {
     });
 
     it("catches replyToMessage errors without throwing", async () => {
+      process.env.SMS_SYNC_TIMEOUT_MS = "50";
       const deferred = deferredReply();
       mockReplyToMessage.mockImplementationOnce(() => deferred.promise);
 

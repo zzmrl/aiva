@@ -20,7 +20,8 @@ export function handleIncomingCall(): string {
   return twiml.toString();
 }
 
-const SMS_SYNC_TIMEOUT_MS = Number(process.env.SMS_SYNC_TIMEOUT_MS) || 10_000;
+const getSyncTimeoutMs = () =>
+  Number(process.env.SMS_SYNC_TIMEOUT_MS) || 10_000;
 
 export async function handleIncomingSms(
   to: string,
@@ -31,7 +32,7 @@ export async function handleIncomingSms(
 
   const replyPromise = messageService.replyToMessage(to, from, body);
   const timeout = new Promise<null>((resolve) =>
-    setTimeout(() => resolve(null), SMS_SYNC_TIMEOUT_MS),
+    setTimeout(() => resolve(null), getSyncTimeoutMs()),
   );
 
   const result = await Promise.race([replyPromise, timeout]);
