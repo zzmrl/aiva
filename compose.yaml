@@ -30,6 +30,9 @@ services:
       PUBLIC_HOST: ${PUBLIC_HOST:?Url of host}
       VENICE_API_KEY: ${VENICE_API_KEY:?Venice API key found in settings}
       AUTOMATE_IT_API_KEY: $AUTOMATE_IT_API_KEY
+      TWILIO_AUTH_TOKEN: $TWILIO_AUTH_TOKEN
+      TWILIO_ACCOUNT_SID: $TWILIO_ACCOUNT_SID
+
     volumes:
       - ./api:/api
     depends_on:

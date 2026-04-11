@@ -1,4 +1,5 @@
 import * as messageService from "../message/service";
+import twilioClient from "./client";
 import twilio from "twilio";
 import appLogger from "../../shared/logger";
 import config from "../../config";
@@ -19,24 +20,48 @@ export function handleIncomingCall(): string {
   return twiml.toString();
 }
 
+const SMS_SYNC_TIMEOUT_MS = 10_000;
+
 export async function handleIncomingSms(
   to: string,
   from: string,
   body: string,
 ): Promise<string> {
-  logger.debug({ from, to, length: body.length }, "Incoming SMS");
-  const twiml = new twilio.twiml.MessagingResponse();
+  logger.debug({ from, to, length: body.length }, "handleIncomingSms");
 
-  try {
-    const message = await messageService.replyToMessage(to, from, body);
-    logger.debug({ to: from, length: message.length }, "SMS reply sent");
-    twiml.message(message);
-  } catch (error) {
-    logger.error({ from, err: error }, "Failed to handle SMS");
-    twiml.message(
-      "Sorry, I'm having trouble right now. Please try again later.",
-    );
+  const replyPromise = messageService.replyToMessage(to, from, body);
+  const timeout = new Promise<null>((resolve) =>
+    setTimeout(() => resolve(null), SMS_SYNC_TIMEOUT_MS),
+  );
+
+  const result = await Promise.race([replyPromise, timeout]);
+
+  if (result !== null) {
+    logger.debug({ length: result.length }, "handleIncomingSms: sync reply");
+    const twiml = new twilio.twiml.MessagingResponse();
+    twiml.message(result);
+    return twiml.toString();
   }
 
+  logger.debug("handleIncomingSms: timed out, falling back to async");
+  void replyPromise
+    .then(async (reply) => {
+      logger.debug(
+        { length: reply.length },
+        "handleIncomingSms: async reply ready",
+      );
+      if (!twilioClient) {
+        logger.warn("outbound SMS disabled — no Twilio client");
+        return;
+      }
+      await twilioClient.messages.create({ body: reply, from: to, to: from });
+      logger.debug({ to: from }, "handleIncomingSms: async outbound SMS sent");
+    })
+    .catch((err) => {
+      logger.error({ from, err }, "handleIncomingSms: async reply failed");
+    });
+
+  const twiml = new twilio.twiml.MessagingResponse();
+  twiml.message("One moment...");
   return twiml.toString();
 }

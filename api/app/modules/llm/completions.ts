@@ -159,7 +159,7 @@ export const defaultCompletion = defineCompletion({
 });
 
 export const smsCompletion = defineCompletion({
-  model: "zai-org-glm-4.7",
+  model: "zai-org-glm-4.7-flash",
   system:
     "You are Ava, a helpful text assistant. Keep responses short and direct. " +
     "Never use markdown — no asterisks, dashes, bullet points, or headers. Plain text only.",

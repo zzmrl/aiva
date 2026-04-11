@@ -12,6 +12,7 @@ const envSchema = z.object({
   VENICE_API_KEY: z.string().min(1),
   DATABASE_URL: z.url(),
   TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
+  TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
   AUTOMATE_IT_API_KEY: z.string().min(1).optional(),
 });
 
