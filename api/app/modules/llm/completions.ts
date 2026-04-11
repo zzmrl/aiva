@@ -152,12 +152,6 @@ export function defineCompletion(settings: CompletionSettings) {
   };
 }
 
-export const defaultCompletion = defineCompletion({
-  model: "zai-org-glm-4.7",
-  system: "You are a helpful assistant. Try to be concise.",
-  params: { venice_parameters: { enable_web_search: "auto" } },
-});
-
 export const smsCompletion = defineCompletion({
   model: "zai-org-glm-4.7-flash",
   system:
@@ -167,7 +161,7 @@ export const smsCompletion = defineCompletion({
 });
 
 export const voiceCompletion = defineCompletion({
-  model: "zai-org-glm-4.7",
+  model: "zai-org-glm-4.7-flash",
   system: `You are Ava, a helpful voice assistant. Be concise and conversational.
     When the response contains markdown lists, convert to natural spoken language — no bullet markers.
     For short lists (2-3 items): "first... then... and finally..."
