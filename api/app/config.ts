@@ -1,9 +1,10 @@
 import { z } from "zod";
 import appLogger from "./shared/logger";
+import { VENICE_MODELS } from "./modules/llm/models";
 
 const logger = appLogger.child({ module: "config" });
 
-const envSchema = z.object({
+export const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
@@ -14,6 +15,8 @@ const envSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
   TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
   AUTOMATE_IT_API_KEY: z.string().min(1).optional(),
+  SMS_MODEL: z.enum(VENICE_MODELS).default("deepseek-v4-flash"),
+  VOICE_MODEL: z.enum(VENICE_MODELS).default("deepseek-v4-flash"),
 });
 
 const environment = process.env;
