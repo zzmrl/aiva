@@ -2,9 +2,11 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionMessageToolCall,
 } from "openai/resources";
-import client from "./client";
-import { hasMcp, getTools, callTool } from "./mcp";
+import config from "../../config";
 import appLogger from "../../shared/logger";
+import client from "./client";
+import { callTool, getTools, hasMcp } from "./mcp";
+import type { VeniceModel } from "./models";
 
 const logger = appLogger.child({ module: "llm:completions" });
 
@@ -27,13 +29,6 @@ export type CompletionCreateParams = {
   [p: string]: unknown;
   venice_parameters: VeniceParameters;
 };
-
-type VeniceModel =
-  | "zai-org-glm-4.7"
-  | "zai-org-glm-4.7-flash"
-  | "zai-org-glm-5"
-  | "grok-41-fast"
-  | "llama-3.2-3b";
 
 export type CompletionSettings = {
   model: VeniceModel;
@@ -153,7 +148,7 @@ export function defineCompletion(settings: CompletionSettings) {
 }
 
 export const smsCompletion = defineCompletion({
-  model: "zai-org-glm-4.7-flash",
+  model: config.SMS_MODEL,
   system:
     "You are Ava, a helpful text assistant. Keep responses short and direct. " +
     "Never use markdown — no asterisks, dashes, bullet points, or headers. Plain text only.",
@@ -161,7 +156,7 @@ export const smsCompletion = defineCompletion({
 });
 
 export const voiceCompletion = defineCompletion({
-  model: "zai-org-glm-4.7-flash",
+  model: config.VOICE_MODEL,
   system: `You are Ava, a helpful voice assistant. Be concise and conversational.
     When the response contains markdown lists, convert to natural spoken language — no bullet markers.
     For short lists (2-3 items): "first... then... and finally..."
