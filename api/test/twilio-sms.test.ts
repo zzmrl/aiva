@@ -17,22 +17,7 @@ mock.module("../app/modules/twilio/smsWorker", () => ({
   enqueue: mockEnqueue,
 }));
 
-mock.module("../app/modules/twilio/client", () => ({
-  default: { messages: { create: mock() } },
-}));
-
-mock.module("../app/config", () => ({
-  default: {
-    NODE_ENV: "test",
-    PUBLIC_HOST: "test.example.com",
-    VENICE_API_KEY: "test-key",
-    DATABASE_URL: "postgres://test:test@localhost:5432/test",
-    TWILIO_ACCOUNT_SID: "AC123",
-    TWILIO_AUTH_TOKEN: "auth-token",
-  },
-}));
-
-const { handleIncomingSms } = await import("../app/modules/twilio/service");
+import { handleIncomingSms } from "../app/modules/twilio/service";
 
 const TO = "+15559876543";
 const FROM = "+15551234567";

@@ -1,23 +1,10 @@
 import { describe, expect, it, afterEach, beforeEach } from "bun:test";
 import * as sessions from "../app/modules/twilio/sessionStore";
+import { makeMockWs } from "./helpers";
 
-const mockWs = {
-  send: () => {},
-  on: () => {},
-  close: () => {},
-} as unknown as import("ws").WebSocket;
-
-const mockWs2 = {
-  send: () => {},
-  on: () => {},
-  close: () => {},
-} as unknown as import("ws").WebSocket;
-
-const mockWsUnknown = {
-  send: () => {},
-  on: () => {},
-  close: () => {},
-} as unknown as import("ws").WebSocket;
+const mockWs = makeMockWs();
+const mockWs2 = makeMockWs();
+const mockWsUnknown = makeMockWs();
 
 describe("sessions", () => {
   beforeEach(() => {

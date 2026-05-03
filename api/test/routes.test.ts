@@ -16,9 +16,6 @@ const mockFindMany = mock(async () => [] as Message[]);
 const mockFindConversation = mock(async () => [] as Message[]);
 const mockFindSystemPhones = mock(async () => [] as string[]);
 const mockFindConversations = mock(async () => []);
-const mockSmsCreateCompletion = mock(
-  async (_messages) => "Mocked text response",
-);
 const mockCreateInboundAndFetchConversation = mock(
   async (_from, _to, _body) => [] as Message[],
 );
@@ -35,52 +32,15 @@ mock.module("../app/modules/message/repository", () => ({
   createInboundAndFetchConversation: mockCreateInboundAndFetchConversation,
 }));
 
-mock.module("../app/db", () => ({
-  sql: mock(async () => []),
-}));
-
-mock.module("../app/config", () => ({
-  default: {
-    NODE_ENV: "test",
-    PORT: 3000,
-    PUBLIC_HOST: "test.example.com",
-    VENICE_API_KEY: "test-key",
-    DATABASE_URL: "postgres://test:test@localhost:5432/test",
-  },
-}));
-
-mock.module("../app/modules/llm/client", () => ({
-  default: {},
-}));
-
-mock.module("../app/modules/llm/completions", () => ({
-  defaultCompletion: {
-    create: mock(() => Promise.resolve("")),
-    stream: mock(async function* () {}),
-  },
-  smsCompletion: {
-    create: mockSmsCreateCompletion,
-    stream: mock(async function* () {}),
-  },
-  defineCompletion: mock(() => ({
-    create: mock(() => Promise.resolve("")),
-    stream: mock(async function* () {}),
-  })),
-}));
-
 mock.module("../app/modules/twilio/stream", () => ({
   attachWebSocket: mock(() => {}),
-}));
-
-mock.module("../app/shared/queue", () => ({
-  default: { send: mock(() => Promise.resolve("job-id")) },
 }));
 
 mock.module("../app/modules/twilio/smsWorker", () => ({
   enqueue: mockEnqueue,
 }));
 
-const { createApp } = await import("../app/factory");
+import { createApp } from "../app/factory";
 
 const app = createApp();
 
