@@ -42,6 +42,7 @@ export async function enqueue(to: string, from: string): Promise<void> {
 
 export async function start(): Promise<void> {
   await boss.start();
+  await boss.createQueue(SMS_QUEUE);
   await boss.work<SmsJobData>(SMS_QUEUE, { localConcurrency: 5 }, processJob);
   logger.info("SMS worker started");
 }
