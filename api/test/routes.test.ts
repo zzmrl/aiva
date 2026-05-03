@@ -1,45 +1,42 @@
 import { describe, expect, it, mock, beforeEach, afterAll } from "bun:test";
 import type { Message, CreateMessageInput } from "../app/modules/message";
 
-const fakeMessage = (p: Partial<Message> = {}): Message => ({
+const fakeMessage = (o: Partial<Message> = {}): Message => ({
   id: 1,
   receiver: "",
   sender: "",
   body: "",
   direction: "inbound",
   created: new Date(),
-  ...p,
+  ...o,
 });
 
-const mockCreate = mock(
-  (_input: CreateMessageInput): Promise<Message> =>
-    Promise.resolve(fakeMessage()),
-);
-const mockFindMany = mock(() => Promise.resolve<Message[]>([]));
-const mockFindConversation = mock(() => Promise.resolve<Message[]>([]));
-const mockFindSystemPhones = mock(() => Promise.resolve<string[]>([]));
-const mockFindConversations = mock(() => Promise.resolve([]));
-const mockSmsCreateCompletion = mock((_messages: unknown[]) =>
-  Promise.resolve("Mocked text response"),
+const mockCreate = mock(async (_input: CreateMessageInput) => fakeMessage());
+const mockFindMany = mock(async () => [] as Message[]);
+const mockFindConversation = mock(async () => [] as Message[]);
+const mockFindSystemPhones = mock(async () => [] as string[]);
+const mockFindConversations = mock(async () => []);
+const mockSmsCreateCompletion = mock(
+  async (_messages) => "Mocked text response",
 );
 const mockCreateInboundAndFetchConversation = mock(
-  (_from: string, _to: string, _body: string): Promise<Message[]> =>
-    Promise.resolve([]),
+  async (_from, _to, _body) => [] as Message[],
 );
+const mockEnqueue = mock(async () => {});
 
 mock.module("../app/modules/message/repository", () => ({
   create: mockCreate,
   findMany: mockFindMany,
   findConversation: mockFindConversation,
   findById: mock(() => Promise.resolve(undefined)),
-  getMessagesByPhone: mock(() => Promise.resolve([])),
+  getMessagesByPhone: mock(async () => []),
   findSystemPhones: mockFindSystemPhones,
   findConversations: mockFindConversations,
   createInboundAndFetchConversation: mockCreateInboundAndFetchConversation,
 }));
 
 mock.module("../app/db", () => ({
-  sql: mock(() => Promise.resolve([])),
+  sql: mock(async () => []),
 }));
 
 mock.module("../app/config", () => ({
@@ -75,6 +72,14 @@ mock.module("../app/modules/twilio/stream", () => ({
   attachWebSocket: mock(() => {}),
 }));
 
+mock.module("../app/shared/queue", () => ({
+  default: { send: mock(() => Promise.resolve("job-id")) },
+}));
+
+mock.module("../app/modules/twilio/smsWorker", () => ({
+  enqueue: mockEnqueue,
+}));
+
 const { createApp } = await import("../app/factory");
 
 const app = createApp();
@@ -89,13 +94,7 @@ afterAll(() => {
 
 describe("API Routes", () => {
   beforeEach(() => {
-    mockCreate.mockClear();
-    mockFindMany.mockClear();
-    mockFindConversation.mockClear();
-    mockFindSystemPhones.mockClear();
-    mockFindConversations.mockClear();
-    mockSmsCreateCompletion.mockClear();
-    mockCreateInboundAndFetchConversation.mockClear();
+    mock.clearAllMocks();
   });
 
   describe("GET /health", () => {
@@ -131,7 +130,7 @@ describe("API Routes", () => {
   });
 
   describe("POST /twilio/sms", () => {
-    it("should save SMS and return TwiML response with LLM completion", async () => {
+    it("should save inbound SMS, enqueue job, and return empty TwiML", async () => {
       const response = await fetch(`${baseUrl}/twilio/sms`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -147,16 +146,17 @@ describe("API Routes", () => {
 
       const xml = await response.text();
       expect(xml).toContain("<?xml version");
-      expect(xml).toContain("<Response>");
-      expect(xml).toContain("<Message>");
-      expect(xml).toContain("Mocked text response");
+      expect(xml).toContain("<Response/>");
 
-      expect(mockCreateInboundAndFetchConversation).toHaveBeenCalledWith(
-        "+15551234567",
-        "+15559876543",
-        "Hello from SMS",
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: "Hello from SMS",
+          sender: "+15551234567",
+          receiver: "+15559876543",
+          direction: "inbound",
+        }),
       );
-      expect(mockSmsCreateCompletion).toHaveBeenCalledWith([]);
+      expect(mockEnqueue).toHaveBeenCalledWith("+15559876543", "+15551234567");
     });
 
     it("should return 400 when Body is missing", async () => {
@@ -215,10 +215,8 @@ describe("API Routes", () => {
       });
 
       expect(response.status).toBe(201);
-      expect(mockCreateInboundAndFetchConversation).toHaveBeenCalledWith(
-        "+15551234567",
-        "+15559876543",
-        specialBody,
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ body: specialBody }),
       );
     });
   });

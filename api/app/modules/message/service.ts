@@ -1,6 +1,7 @@
 import { NotFoundError } from "../../shared/errors";
 import { smsCompletion } from "../llm/completions";
-import { repository, type Conversation, type Message } from ".";
+import * as repository from "./repository";
+import type { Conversation, Message } from "./model";
 import appLogger from "../../shared/logger";
 
 const logger = appLogger.child({ module: "message:service" });
@@ -59,6 +60,35 @@ export async function replyToMessage(
     })),
   );
   logger.debug({ length: llmResponse.length }, "replyToMessage: LLM response");
+  await repository.create({
+    body: llmResponse,
+    receiver: from,
+    sender: to,
+    direction: "outbound",
+  });
+  return llmResponse;
+}
+
+export async function generateResponse(
+  to: string,
+  from: string,
+): Promise<string> {
+  logger.debug({ from }, "generateResponse");
+  const conversation = await repository.findByParticipants(from, to);
+  logger.debug(
+    { count: conversation.length },
+    "generateResponse: conversation history",
+  );
+  const llmResponse = await smsCompletion.create(
+    conversation.map((msg) => ({
+      role: msg.direction === "outbound" ? "assistant" : "user",
+      content: msg.body,
+    })),
+  );
+  logger.debug(
+    { length: llmResponse.length },
+    "generateResponse: LLM response",
+  );
   await repository.create({
     body: llmResponse,
     receiver: from,

@@ -8,10 +8,7 @@ export const voice: RequestHandler = (_req, res) => {
 };
 
 export const sms: RequestHandler = async (req: SmsWebhookRequest, res) => {
-  const response = await service.handleIncomingSms(
-    req.body.To,
-    req.body.From,
-    req.body.Body,
-  );
+  const { To, From, Body } = req.body;
+  const response = await service.handleIncomingSms(To, From, Body);
   res.status(201).type("text/xml").send(response);
 };

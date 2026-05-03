@@ -12,4 +12,3 @@ export const messageIdSchema = {
     id: z.coerce.number().int().positive(),
   }),
 };
-

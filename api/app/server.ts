@@ -1,12 +1,15 @@
 import config from "./config";
 import { createApp } from "./factory";
 import { sessionStore, stream } from "./modules/twilio";
+import * as smsWorker from "./modules/twilio/smsWorker";
 import { hasMcp, getTools } from "./modules/llm/mcp";
 import appLogger from "./shared/logger";
 
 const logger = appLogger.child({ module: "server" });
 
 const app = createApp();
+
+await smsWorker.start();
 
 const server = app.listen(config.PORT, () => {
   logger.info(`Server is listening on port ${config.PORT}`);
@@ -29,6 +32,6 @@ process.on("SIGTERM", () => {
   wss.close();
   server.close(() => {
     logger.debug("Server closed");
-    process.exit(0);
+    smsWorker.stop().finally(() => process.exit(0));
   });
 });
