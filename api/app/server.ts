@@ -1,7 +1,6 @@
 import config from "./config";
 import { createApp } from "./factory";
-import { sessionStore, stream } from "./modules/twilio";
-import * as smsWorker from "./modules/twilio/smsWorker";
+import { sessionStore, stream, smsWorker } from "./modules/twilio";
 import { hasMcp, getTools } from "./modules/llm/mcp";
 import appLogger from "./shared/logger";
 

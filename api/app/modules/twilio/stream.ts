@@ -1,10 +1,8 @@
-import { WebSocketServer } from "ws";
-import type { WebSocket } from "ws";
+import { WebSocketServer, type WebSocket } from "ws";
 import type { Server } from "http";
 import * as sessionStore from "./sessionStore";
-import { voiceCompletion } from "../llm/completions";
+import { voiceCompletion, type CompletionMessage } from "../llm/completions";
 import { repository as messageRepository } from "../message";
-import type { CompletionMessage } from "../llm/completions";
 import appLogger from "../../shared/logger";
 
 const logger = appLogger.child({ module: "twilio:stream" });
