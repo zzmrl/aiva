@@ -36,13 +36,10 @@ export type CompletionSettings = {
   params?: CompletionCreateParams;
 };
 
-async function executeToolCalls(
-  toolCalls: ChatCompletionMessageToolCall[],
-  conversation: CompletionMessage[],
-): Promise<void> {
+async function executeToolCalls(toolCalls: ChatCompletionMessageToolCall[]) {
   logger.debug({ count: toolCalls.length }, "executing tool calls");
   const functionCalls = toolCalls.filter((tc) => tc.type === "function");
-  const results = await Promise.all(
+  return Promise.all(
     functionCalls.map(async (toolCall) => {
       const args = JSON.parse(toolCall.function.arguments);
       const result = await callTool(toolCall.function.name, args);
@@ -53,7 +50,6 @@ async function executeToolCalls(
       };
     }),
   );
-  conversation.push(...results);
 }
 
 export function defineCompletion(settings: CompletionSettings) {
@@ -89,8 +85,8 @@ export function defineCompletion(settings: CompletionSettings) {
         break;
       }
       await onToolCall?.();
-      conversation.push(choice.message);
-      await executeToolCalls(choice.message.tool_calls, conversation);
+      const toolMessages = await executeToolCalls(choice.message.tool_calls);
+      conversation.push(choice.message, ...toolMessages);
     }
 
     return conversation;
@@ -150,19 +146,18 @@ export function defineCompletion(settings: CompletionSettings) {
 export const smsCompletion = defineCompletion({
   model: config.SMS_MODEL,
   system:
-    "You are Ava, a helpful text assistant. Keep responses short and direct. " +
+    "Your name is Aiva. You are a helpful text assistant. Keep responses short and direct. " +
     "Never use markdown — no asterisks, dashes, bullet points, or headers. Plain text only.",
   params: { venice_parameters: { enable_web_search: "auto" } },
 });
 
 export const voiceCompletion = defineCompletion({
   model: config.VOICE_MODEL,
-  system: `You are Ava, a helpful voice assistant. Be concise and conversational.
+  system: `Your name is Ava. You are a helpful voice assistant. Be concise and conversational.
     When the response contains markdown lists, convert to natural spoken language — no bullet markers.
     For short lists (2-3 items): "first... then... and finally..."
     For longer lists, introduce with a phrase like "here are the steps:" or "there are four options:", then read each item as a sentence.
     Numbered lists should be read as "first", "second", "third", not "one", "two", "three".
-    URLs should be read character by character: "automate.it.com/docs" → "automate dot it dot com slash docs".
-`,
+    URLs should be read character by character: "automate.it.com/docs" → "automate dot it dot com slash docs".`,
   params: { venice_parameters: { enable_web_search: "auto" } },
 });

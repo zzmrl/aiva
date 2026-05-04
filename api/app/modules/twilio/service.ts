@@ -31,7 +31,6 @@ export async function handleIncomingSms(
     sender: from,
     direction: "inbound",
   });
-
   await smsWorker.enqueue(to, from);
   logger.debug({ from }, "handleIncomingSms: job enqueued");
 

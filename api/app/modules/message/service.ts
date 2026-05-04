@@ -38,47 +38,8 @@ export async function listSystemPhones(): Promise<string[]> {
   return repository.findSystemPhones();
 }
 
-export async function replyToMessage(
-  to: string,
-  from: string,
-  body: string,
-): Promise<string> {
-  logger.debug({ from, length: body.length }, "replyToMessage");
-  const conversation = await repository.createInboundAndFetchConversation(
-    from,
-    to,
-    body,
-  );
-  logger.debug(
-    { count: conversation.length },
-    "replyToMessage: conversation history",
-  );
-  const llmResponse = await smsCompletion.create(
-    conversation.map((msg) => ({
-      role: msg.direction === "outbound" ? "assistant" : "user",
-      content: msg.body,
-    })),
-  );
-  logger.debug({ length: llmResponse.length }, "replyToMessage: LLM response");
-  await repository.create({
-    body: llmResponse,
-    receiver: from,
-    sender: to,
-    direction: "outbound",
-  });
-  return llmResponse;
-}
-
-export async function generateResponse(
-  to: string,
-  from: string,
-): Promise<string> {
-  logger.debug({ from }, "generateResponse");
+export async function generateReply(to: string, from: string): Promise<string> {
   const conversation = await repository.findByParticipants(from, to);
-  logger.debug(
-    { count: conversation.length },
-    "generateResponse: conversation history",
-  );
   const llmResponse = await smsCompletion.create(
     conversation.map((msg) => ({
       role: msg.direction === "outbound" ? "assistant" : "user",
@@ -86,7 +47,7 @@ export async function generateResponse(
     })),
   );
   logger.debug(
-    { length: llmResponse.length },
+    { from, replyLen: llmResponse.length, historyCount: conversation.length },
     "generateResponse: LLM response",
   );
   await repository.create({

@@ -46,7 +46,11 @@ export function appendMessage(
   }
   session.messages.push(message);
   logger.debug(
-    { callSid: session.callSid, role: message.role, total: session.messages.length },
+    {
+      callSid: session.callSid,
+      role: message.role,
+      total: session.messages.length,
+    },
     "appendMessage",
   );
   return session.messages;

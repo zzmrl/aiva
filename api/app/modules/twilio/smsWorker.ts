@@ -21,7 +21,7 @@ async function processOne(job: PgBoss.Job<SmsJobData>): Promise<void> {
   const { to, from } = job.data;
   logger.debug({ to, from, jobId: job.id }, "processing SMS job");
 
-  const reply = await messageService.generateResponse(to, from);
+  const reply = await messageService.generateReply(to, from);
 
   if (!twilioClient) {
     logger.warn({ jobId: job.id }, "outbound SMS disabled - no Twilio client");
@@ -33,11 +33,15 @@ async function processOne(job: PgBoss.Job<SmsJobData>): Promise<void> {
 }
 
 export async function enqueue(to: string, from: string): Promise<void> {
-  await boss.send(SMS_QUEUE, { to, from }, {
-    retryLimit: 5,
-    retryDelay: 30,
-    retryBackoff: true,
-  });
+  await boss.send(
+    SMS_QUEUE,
+    { to, from },
+    {
+      retryLimit: 5,
+      retryDelay: 30,
+      retryBackoff: true,
+    },
+  );
 }
 
 export async function start(): Promise<void> {
