@@ -7,6 +7,7 @@ import appLogger from "../../shared/logger";
 const logger = appLogger.child({ module: "twilio:smsWorker" });
 
 export const SMS_QUEUE = "sms-reply";
+const MAX_REPLY_LENGTH = 1500;
 
 export type SmsJobData = {
   to: string;
@@ -28,8 +29,32 @@ async function processOne(job: PgBoss.Job<SmsJobData>): Promise<void> {
     return;
   }
 
-  await twilioClient.messages.create({ body: reply, from: to, to: from });
-  logger.debug({ to: from, jobId: job.id }, "outbound SMS sent");
+  const segments = splitReply(reply, MAX_REPLY_LENGTH);
+  for (const body of segments) {
+    await twilioClient.messages.create({ body, from: to, to: from });
+  }
+  logger.debug(
+    { to: from, jobId: job.id, segments: segments.length },
+    "outbound SMS sent",
+  );
+}
+
+function splitReply(reply: string, maxLength: number): string[] {
+  if (reply.length <= maxLength) return [reply];
+
+  const segments: string[] = [];
+  let remaining = reply.trim();
+  while (remaining.length > maxLength) {
+    const slice = remaining.slice(0, maxLength);
+    const breakPoint =
+      Math.max(slice.lastIndexOf("\n"), slice.lastIndexOf(". ")) + 1 ||
+      slice.lastIndexOf(" ") + 1 ||
+      maxLength;
+    segments.push(remaining.slice(0, breakPoint).trim());
+    remaining = remaining.slice(breakPoint).trim();
+  }
+  if (remaining.length > 0) segments.push(remaining);
+  return segments;
 }
 
 export async function enqueue(to: string, from: string): Promise<void> {

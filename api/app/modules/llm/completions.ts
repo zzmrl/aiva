@@ -64,7 +64,6 @@ export function defineCompletion(settings: CompletionSettings) {
   // Resolves MCP tool call rounds (if any) before the final completion.
   async function prepareConversation(
     messages: CompletionMessage[],
-    systemMessage: { role: "system"; content: string },
     onToolCall?: () => void | Promise<void>,
   ): Promise<CompletionMessage[]> {
     const conversation = [...messages];
@@ -74,7 +73,7 @@ export function defineCompletion(settings: CompletionSettings) {
     while (true) {
       const response = await client.chat.completions.create({
         ...baseParams,
-        messages: [systemMessage, ...conversation],
+        messages: conversation,
         tools,
       });
       const choice = response.choices[0];
@@ -98,11 +97,13 @@ export function defineCompletion(settings: CompletionSettings) {
       options?: { systemContext?: string },
     ): Promise<string> {
       logger.debug({ model, messages: messages.length }, "create()");
-      const systemMessage = buildSystemMessage(options?.systemContext);
-      const conversation = await prepareConversation(messages, systemMessage);
+      const conversation = await prepareConversation([
+        buildSystemMessage(options?.systemContext),
+        ...messages,
+      ]);
       const response = await client.chat.completions.create({
         ...baseParams,
-        messages: [systemMessage, ...conversation],
+        messages: conversation,
       });
       const content = response.choices[0]?.message.content ?? "";
       logger.debug({ length: content.length }, "create() response");
@@ -118,16 +119,14 @@ export function defineCompletion(settings: CompletionSettings) {
       },
     ) {
       logger.debug({ model, messages: messages.length }, "stream()");
-      const systemMessage = buildSystemMessage(options?.systemContext);
       const conversation = await prepareConversation(
-        messages,
-        systemMessage,
+        [buildSystemMessage(options?.systemContext), ...messages],
         options?.onToolCall,
       );
       const stream = await client.chat.completions.create(
         {
           ...baseParams,
-          messages: [systemMessage, ...conversation],
+          messages: conversation,
           stream: true,
         },
         { signal: options?.signal },
@@ -146,7 +145,10 @@ export function defineCompletion(settings: CompletionSettings) {
 export const smsCompletion = defineCompletion({
   model: config.SMS_MODEL,
   system:
-    "Your name is Aiva. You are a helpful text assistant. Keep responses short and direct. " +
+    "Your name is Aiva. You are a helpful text assistant. " +
+    "Reply like a text message: short, direct, conversational. " +
+    "Hard limit: 1500 characters. Aim for under 320 (two SMS segments). " +
+    "If a full answer would exceed that, give the essential answer and offer to send more if asked. " +
     "Never use markdown — no asterisks, dashes, bullet points, or headers. Plain text only.",
   params: { venice_parameters: { enable_web_search: "auto" } },
 });
