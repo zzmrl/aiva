@@ -116,7 +116,7 @@ describe("API Routes", () => {
           direction: "inbound",
         }),
       );
-      expect(mockEnqueue).toHaveBeenCalledWith("+15559876543", "+15551234567");
+      expect(mockEnqueue).toHaveBeenCalledWith("+15551234567", "+15559876543");
     });
 
     it("should return 400 when Body is missing", async () => {

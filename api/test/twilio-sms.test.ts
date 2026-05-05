@@ -45,7 +45,7 @@ describe("handleIncomingSms", () => {
   it("enqueues a job with correct to/from", async () => {
     await handleIncomingSms(TO, FROM, BODY);
 
-    expect(mockEnqueue).toHaveBeenCalledWith(TO, FROM);
+    expect(mockEnqueue).toHaveBeenCalledWith(FROM, TO);
   });
 
   it("always returns empty TwiML", async () => {
